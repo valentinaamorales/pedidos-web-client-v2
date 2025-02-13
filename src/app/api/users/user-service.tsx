@@ -3,12 +3,19 @@ import { ENDPOINTS } from '@/config/api';
 import { UserProfile } from '@/types/users';
 import { getAccessToken } from '@/app/actions/getAccessToken';
 
+// Create axios instance with base configuration
 const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_API_URL
   },
+});
+
+// Add request interceptor to handle credentials
+api.interceptors.request.use((config) => {
+  config.withCredentials = true;
+  return config;
 });
 
 export class UserService {
@@ -32,6 +39,7 @@ export class UserService {
         console.error('Error fetching user profile:', {
           status: error.response?.status,
           message: error.message,
+          data: error.response?.data
         });
       }
       throw error;
