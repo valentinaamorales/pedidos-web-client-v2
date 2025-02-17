@@ -1,36 +1,22 @@
-import axios from 'axios';
-import { ENDPOINTS } from '@/config/api';
-import { UserProfile } from '@/types/users';
+import { axiosInstance } from '@/lib/axios';
+import { UserProfile, UsersListDto} from '@/types/users';
 import { getAccessToken } from '@/app/actions/getAccessToken';
-
-// Create axios instance with base configuration
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to handle credentials
-api.interceptors.request.use((config) => {
-  config.withCredentials = true;
-  return config;
-});
+import axios from 'axios';
 
 export class UserService {
   static async getProfile(): Promise<UserProfile> {
-    const accessToken = await getAccessToken();
-    
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
-
     try {
-      const { data } = await api.get<UserProfile>(ENDPOINTS.userProfile, {
+      const accessToken = await getAccessToken();
+      
+      if (!accessToken) {
+        throw new Error('No access token available');
+      }
+
+      const { data } = await axiosInstance.get<UserProfile>('/users/me', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-        },
+          'Cache-Control': 'no-cache',
+        }
       });
 
       return data;
@@ -41,8 +27,44 @@ export class UserService {
           message: error.message,
           data: error.response?.data
         });
+
+        if (error.response?.status === 404) {
+          throw new Error('User profile not found');
+        }
       }
-      throw error;
+      throw new Error('Failed to fetch user profile');
+    }
+  }
+
+  static async getUsers(): Promise<UsersListDto> {
+    try {
+      const accessToken = await getAccessToken();
+      
+      if (!accessToken) {
+        throw new Error('No access token available');
+      }
+
+      const { data } = await axiosInstance.get<UsersListDto>('/users/paginated', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache',
+        }
+      });
+
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Error fetching users:', {
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data
+        });
+
+        if (error.response?.status === 404) {
+          throw new Error('Users not found');
+        }
+      }
+      throw new Error('Failed to fetch users');
     }
   }
 }

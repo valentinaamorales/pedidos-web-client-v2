@@ -1,7 +1,9 @@
+import OrdersCard from "@/components/orders/orders-card";
+
 export default function Orders() {
   return (
     <main>
-      <h1>Orders</h1>
+      <OrdersCard />
     </main>
   );
 }
