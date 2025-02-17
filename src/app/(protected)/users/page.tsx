@@ -1,4 +1,5 @@
 import RoleGuard from '@/components/auth/role-guard'
+import UsersCard from '@/components/users/users-card';
 
 export default function Users() {
   return (
@@ -7,7 +8,7 @@ export default function Users() {
       fallback={<div>Not authorized</div>}
     >
     <main>
-      <h1>Users</h1>
+      <UsersCard />
     </main>
     </RoleGuard>
   );

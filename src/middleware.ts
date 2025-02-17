@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
 
   const { origin } = new URL(request.url);
   const session = await auth0.getSession();
-  // console.log("session", session);
+  console.log("session", session);
 
   if (
     protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))

@@ -8,3 +8,8 @@ export interface UserProfile {
     is_active: boolean
 }
 
+export interface UsersListDto {
+    full_name: string,
+    user_type: string,
+    is_active: boolean
+}
