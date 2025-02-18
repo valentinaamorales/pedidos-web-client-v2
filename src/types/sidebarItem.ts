@@ -5,4 +5,5 @@ export interface SidebarItem {
   url: string;
   icon: LucideIcon;
   children?: SidebarItem[];
+  allowedRoles: string[];
 }

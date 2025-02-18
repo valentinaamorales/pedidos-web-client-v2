@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth0 } from '@/lib/auth0';
+import { getUserRole } from '@/app/actions/getUserRole';
 
-const protectedRoutes = ['/home', '/orders', '/users'];
+type UserRole = 'admin' | 'employee' | 'customer' | 'unauthorized';
+
+// Define protected routes and their allowed roles
+const routePermissions: Record<string, UserRole[]> = {
+  '/home': ['admin', 'employee', 'customer'],
+  '/orders': ['admin', 'employee', 'customer'],
+  '/users': ['admin'],
+};
 
 export async function middleware(request: NextRequest) {
   const authRes = await auth0.middleware(request);
@@ -13,25 +21,23 @@ export async function middleware(request: NextRequest) {
 
   const { origin } = new URL(request.url);
   const session = await auth0.getSession();
-  console.log("session", session);
 
-  if (
-    protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))
-  ) {
+  const currentPath = Object.keys(routePermissions).find(route => 
+    request.nextUrl.pathname.startsWith(route)
+  );
+
+  if (currentPath) {
     if (!session) {
       return NextResponse.redirect(`${origin}/auth/login`);
+    }
+
+    const userRole = await getUserRole();
+    const allowedRoles = routePermissions[currentPath];
+
+    if (!allowedRoles?.includes(userRole)) {
+      return NextResponse.redirect(`${origin}/unauthorized`);
     }
   }
 
   return authRes;
 }
-
-export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
-    '/auth/:path*',
-    '/home/:path*',
-    '/orders/:path*',
-    '/users/:path*',
-  ],
-};
