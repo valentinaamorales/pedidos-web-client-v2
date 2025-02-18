@@ -1,5 +1,6 @@
 'use client';
 
+import { useRole } from '@/hooks/use-role';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -21,10 +22,15 @@ import { useUser } from '@auth0/nextjs-auth0';
 
 const CustomSidebar = () => {
   const { user, isLoading } = useUser();
+  const { role } = useRole();
   const { state } = useSidebar();
   const pathname = usePathname();
 
   const isSidebarCollapsed = state === 'collapsed';
+
+  const filteredSidebarItems = sidebarItems.filter(item => 
+    item.allowedRoles.includes(role || '')
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-primary">
@@ -40,7 +46,7 @@ const CustomSidebar = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems.map(sidebarItem => (
+              {filteredSidebarItems.map(sidebarItem => (
                 <SidebarMenuItem key={sidebarItem.title}>
                   <SidebarMenuButton
                     asChild
