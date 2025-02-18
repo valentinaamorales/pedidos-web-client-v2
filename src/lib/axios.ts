@@ -5,7 +5,6 @@ export const axiosInstance = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Credentials': 'true',
   },
   timeout: 10000,
 });
@@ -27,3 +26,4 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
