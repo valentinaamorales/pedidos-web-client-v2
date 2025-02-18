@@ -8,7 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { OrderDetailsDialog } from "@/components/MyOrders/OrderDetailsDialog";
+import { OrderDetailsDialog } from "@/components/orders/order-details-dialog";
 
 // este getdata se debe pasar para /services ya que es el llamado a la api de pedidos
 async function getData(): Promise<Order[]> {
@@ -131,7 +131,7 @@ const columns: ColumnDef<Order>[] = [
     header: "Acciones",
     cell: ({ row }) => {
       const order = row.original;
-    //   return <OrderDetailsDialog />;
+      return <OrderDetailsDialog />;
     },
   },
 ];
