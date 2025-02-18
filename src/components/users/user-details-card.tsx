@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import { Loader2, Save, Edit2 } from "lucide-react";
 interface UserDetailsCardProps {
     id: string;
   }
+
+const userTypes = ["empleado", "cliente"];
 
 const UserDetailsCard = ({ id }: UserDetailsCardProps) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -87,7 +90,7 @@ const UserDetailsCard = ({ id }: UserDetailsCardProps) => {
           </Button>
         ) : (
           <div className="space-x-2">
-            <Button onClick={handleSave} variant="default" size="sm">
+            <Button onClick={handleSave} variant="default" className="bg-primary hover:bg-dark-green/90 hover:text-secondary" size="sm">
               <Save className="h-4 w-4 mr-2" />
               Guardar
             </Button>
@@ -130,22 +133,56 @@ const UserDetailsCard = ({ id }: UserDetailsCardProps) => {
         </div>
         <div>
           <Label htmlFor="user_type">Tipo de Usuario</Label>
-          <Input
-            id="user_type"
+          <Select
+            disabled={!isEditing}
             value={editedProfile?.user_type || ''}
-            readOnly
-            className="focus-visible:ring-neutral-50"
-          />
+            onValueChange={(value) => 
+              setEditedProfile(prev => prev ? {...prev, user_type: value} : null)
+            }
+          >
+            <SelectTrigger id="user_type">
+              <SelectValue placeholder="Seleccionar tipo de usuario" />
+            </SelectTrigger>
+            <SelectContent>
+              {userTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
         <div>
           <Label htmlFor="is_active">Estado</Label>
+          <Select
+            disabled={!isEditing}
+            value={editedProfile?.is_active ? 'true' : 'false'}
+            onValueChange={(value) => 
+              setEditedProfile(prev => prev ? {...prev, is_active: value === 'true'} : null)
+            }
+          >
+            <SelectTrigger id="is_active">
+              <SelectValue placeholder="Seleccionar estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">Activo</SelectItem>
+              <SelectItem value="false">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+
+        <div>
+          <Label htmlFor="auth0_id">Auth0 ID</Label>
           <Input
-            id="is_active"
-            value={editedProfile?.is_active ? 'Activo' : 'Inactivo'}
-            readOnly
-            className="focus-visible:ring-neutral-50"
+            id="auth0_id"
+            value={editedProfile?.auth0_id || ''}
+            readOnly={true}
+            className="bg-gray-50 text-gray-500"
           />
         </div>
+
       </CardContent>
     </Card>
   );
