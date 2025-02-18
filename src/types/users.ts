@@ -9,6 +9,7 @@ export interface UserProfile {
 }
 
 export interface UsersListDto {
+    id: string;
     full_name: string,
     user_type: string,
     is_active: boolean

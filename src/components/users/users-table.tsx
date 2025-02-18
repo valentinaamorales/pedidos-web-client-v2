@@ -8,8 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { OrderDetailsDialog } from "@/components/MyOrders/OrderDetailsDialog";
-
+import { UserDetailsDialog } from "./user-details-dialog";
 
 const columns: ColumnDef<UsersListDto>[] = [
     {
@@ -24,9 +23,10 @@ const columns: ColumnDef<UsersListDto>[] = [
       accessorKey: "is_active",
       header: ({ column }) => {
         return (
-          <div className="text-center">
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
             Estado
-          </div>
+            <ArrowUpDown />
+          </Button>
         );
       },
       cell: ({ row }) => {
@@ -44,8 +44,8 @@ const columns: ColumnDef<UsersListDto>[] = [
       cell: ({ row }) => {
         const user = row.original;
         return (
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            
+          <Button variant="ghost" className="h-8 w-8 p-0" >
+            <UserDetailsDialog id={user.id} />
           </Button>
         );
       },
@@ -61,7 +61,7 @@ const columns: ColumnDef<UsersListDto>[] = [
       const fetchUsers = async () => {
         try {
           const response = await UserService.getUsers();
-          setData([response]);
+          setData(Array.isArray(response) ? response : [response]);
           setError(null);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Error fetching users');
