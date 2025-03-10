@@ -8,7 +8,7 @@ export default function IncompleteProfilePage() {
         Tu perfil está incompleto. Por favor, contacta al administrador para completar tu información.
       </p>
       <Link
-        href="/home" 
+        href="/" 
         className="mt-4 text-white bg-primary px-4 py-2 rounded-md hover:bg-primary/90"
       >
         Volver al inicio

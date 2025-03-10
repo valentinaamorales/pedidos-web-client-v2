@@ -1,7 +1,9 @@
-export default function CreateOrder() {
+import { CreateOrderStepper } from "./create-order-stepper"
+
+export default function CreateOrderPage() {
   return (
-    <div>
-      <h1>Create Order</h1>
+    <div className="container py-8">
+      <CreateOrderStepper />
     </div>
-  );
+  )
 }
