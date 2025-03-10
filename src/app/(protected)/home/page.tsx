@@ -11,19 +11,24 @@ export default function Home() {
   const { profile, loading, error } = useProfile();
 
   if (loading) {
-    return <Loader2 className="h-8 w-8 animate-spin" />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <h1 className="text-4xl font-bold mb-4">Error</h1>
+        <p className="text-lg text-gray-600">{error.message}</p>
+      </div>
+    );
   }
 
   if (!profile) {
-    return (
-      <main>
-        <a href="/auth/login">Por favor inicia sesión para usar la aplicación!</a>
-      </main>
-    );
+    return null;
   }
 
   return (
