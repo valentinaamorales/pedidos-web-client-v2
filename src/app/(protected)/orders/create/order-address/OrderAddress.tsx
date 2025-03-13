@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,7 +30,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
-import { Address } from '@/types/adresses';
+import { Address } from '@/types/addresses';
+import { AddressService } from '@/app/api/interlocutors/address-service';
 
 const FormSchema = z.object({
   merchandiseRecipient: z.string({
@@ -62,7 +62,7 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
     defaultValues: formData || {},
   });
 
-  // Cargar direcciones de entrega cuando el componente se monta
+  // Cargar direcciones cuando el componente se monta
   useEffect(() => {
     if (!formData.customerId) {
       toast.error("No se ha seleccionado un cliente");
@@ -73,12 +73,8 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
       // Cargar direcciones de entrega
       setIsLoadingDelivery(true);
       try {
-        const response = await fetch(`/api/customers/address?parent_id=${formData.customerId}&type=delivery`);
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setDeliveryAddresses(data);
+        const deliveryData = await AddressService.getAddresses(formData.customerId, "delivery");
+        setDeliveryAddresses(deliveryData);
       } catch (error) {
         console.error("Error fetching delivery addresses:", error);
         toast.error("Error al cargar direcciones de entrega");
@@ -89,12 +85,8 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
       // Cargar direcciones de facturación
       setIsLoadingInvoice(true);
       try {
-        const response = await fetch(`/api/customers/address?parent_id=${formData.customerId}&type=invoice`);
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setInvoiceAddresses(data);
+        const invoiceData = await AddressService.getAddresses(formData.customerId, "invoice");
+        setInvoiceAddresses(invoiceData);
       } catch (error) {
         console.error("Error fetching invoice addresses:", error);
         toast.error("Error al cargar direcciones de facturación");
@@ -183,7 +175,7 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
                         ) : (
                           deliveryAddresses.map((address) => (
                             <SelectItem key={address.id} value={address.id}>
-                              {address.name} - {address.address}
+                              {address.name || "Dirección"} - {address.address}
                             </SelectItem>
                           ))
                         )}
@@ -217,7 +209,7 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
                         ) : (
                           invoiceAddresses.map((address) => (
                             <SelectItem key={address.id} value={address.id}>
-                              {address.name} - {address.address}
+                              {address.name || "Dirección"} - {address.address}
                             </SelectItem>
                           ))
                         )}
