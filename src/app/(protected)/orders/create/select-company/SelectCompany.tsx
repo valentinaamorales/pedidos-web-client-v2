@@ -1,6 +1,6 @@
 "use client"
-
-import { useState } from "react"
+ 
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -10,45 +10,81 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
-
+import { CompanyService } from "@/app/api/companies/company-service"
+import { Company } from "@/types/companies"
+ 
 const FormSchema = z.object({
   company: z.string({
     required_error: "Por favor selecciona una empresa.",
   }),
 })
-
+ 
 interface SelectCompanyProps {
   formData: Record<string, any>;
   updateFormData: (data: Record<string, any>) => void;
   onComplete: () => void;
 }
-
+ 
 export default function SelectCompany({ formData, updateFormData, onComplete }: SelectCompanyProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: formData || {},
   })
-
+ 
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const data = await CompanyService.getCompanies();
+        setCompanies(data);
+      } catch (error) {
+        toast.error("Error al cargar las empresas");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+ 
+    fetchCompanies();
+  }, []);
+ 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsSubmitting(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      updateFormData(data)
-      toast.success(
-        "Empresa seleccionada", { description: `Has seleccionado ${data.company}`}
-      )
-
-      onComplete()
+      // Buscar el objeto de la compañía completo por su nombre
+      const selectedCompany = companies.find(company => company.name === data.company);
+      
+      if (!selectedCompany) {
+        toast.error("No se encontró la empresa seleccionada");
+        return;
+      }
+      
+      // Add debugging
+      console.log("Selected company:", selectedCompany);
+      
+      // Actualizar formData con el objeto completo de la compañía
+      const updatedFormData = {
+        ...formData,
+        company: data.company,
+        companyId: selectedCompany.id // Make sure this is not undefined
+      };
+      
+      console.log("Updated formData:", updatedFormData);
+      updateFormData(updatedFormData);
+      
+      toast.success("Empresa seleccionada correctamente");
+      onComplete();
     } catch (error) {
-      toast.error("Error", {description: "Hubo un problema al seleccionar la empresa."})
+      toast.error("Error al seleccionar la empresa");
+      console.error(error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
-
+ 
   return (
     <Card className="w-full mx-auto">
       <CardHeader className="space-y-1">
@@ -69,13 +105,19 @@ export default function SelectCompany({ formData, updateFormData, onComplete }: 
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar empresa" />
+                        <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccionar empresa"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Premex">Premex</SelectItem>
-                      <SelectItem value="Nutreo">Nutreo</SelectItem>
-                      <SelectItem value="Adiquim">Adiquim</SelectItem>
+                      {isLoading ? (
+                        <SelectItem value="loading" disabled>Cargando empresas...</SelectItem>
+                      ) : (
+                        companies.map((company) => (
+                          <SelectItem key={company.id} value={company.name}>
+                            {company.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -83,7 +125,11 @@ export default function SelectCompany({ formData, updateFormData, onComplete }: 
               )}
             />
             <div className="flex justify-end">
-              <Button type="submit" className="bg-dark-green hover:bg-dark-green/90 text-white" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="bg-dark-green hover:bg-dark-green/90 text-white"
+                disabled={isSubmitting || isLoading}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -100,4 +146,3 @@ export default function SelectCompany({ formData, updateFormData, onComplete }: 
     </Card>
   )
 }
-

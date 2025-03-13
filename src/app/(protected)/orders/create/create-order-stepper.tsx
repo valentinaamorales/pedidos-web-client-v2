@@ -37,23 +37,26 @@ export function CreateOrderStepper() {
     observations: "",
   })
 
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
   const prevStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
     }
   }
 
-  const updateFormData = (stepId: string, data: any) => {
+  const updateFormData = (data: any) => {
     setFormData((prev) => ({
       ...prev,
-      [stepId]: data,
+      ...data,
     }))
+  }
+
+  const handleStepComplete = () => {
+    // Solo avanzar si no es el último paso
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1)
+    } else {
+      handleSubmit()
+    }
   }
 
   const handleSubmit = async () => {
@@ -87,61 +90,50 @@ export function CreateOrderStepper() {
             <div key={step.id} className="flex flex-col items-center flex-1">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm sm:text-base mb-2
-                  ${index <= currentStep ? "bg-dark-green text-white" : "bg-secondary text-primary"}
-                  font-semibold transition-colors duration-300`}
+                  ${
+                    index < currentStep
+                      ? "bg-dark-green text-white"
+                      : index === currentStep
+                      ? "bg-dark-green text-white border-2 border-dark-green"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
               >
-                {index + 1}
+                {index < currentStep ? "✓" : index + 1}
               </div>
               <span
-                className={`text-xs sm:text-sm text-center ${index <= currentStep ? "text-dark-green font-medium" : "text-muted-foreground"}`}
+                className={`text-xs sm:text-sm font-medium ${
+                  index <= currentStep ? "text-dark-green" : "text-gray-400"
+                }`}
               >
                 {step.title}
               </span>
-              {index < steps.length - 1 && (
-                <div className="absolute left-0 right-0 h-1 top-5 -z-10">
-                  <div
-                    className={`h-1 ${index < currentStep ? "bg-dark-green" : "bg-secondary"} transition-all duration-300`}
-                    style={{ width: index < currentStep ? "100%" : "0%" }}
-                  />
-                </div>
-              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Current Step Content */}
-      <div className="mt-4 w-full">
+      {/* Current Step Form */}
+      <div className="mb-6">
         <CurrentStepComponent
-          formData={formData[steps[currentStep].id]}
-          updateFormData={(data: Record<string, any>) => updateFormData(steps[currentStep].id, data)}
-          onComplete={nextStep}
+          formData={formData}
+          updateFormData={updateFormData}
+          onComplete={handleStepComplete}
         />
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="mt-8 flex justify-between w-full">
-        <Button onClick={prevStep} disabled={currentStep === 0} variant="outline" className="flex items-center gap-2">
-          <CircleArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Anterior</span>
-        </Button>
-
-        {currentStep === steps.length - 1 ? (
+      {/* Navigation */}
+      <div className="flex justify-between mt-8 pb-8">
+        {currentStep > 0 ? (
           <Button
-            onClick={handleSubmit}
-            className="bg-dark-green text-white hover:bg-dark-green/90 flex items-center gap-2"
+            variant="outline"
+            onClick={prevStep}
+            className="flex items-center"
           >
-            <CircleCheck className="h-4 w-4" />
-            <span>Finalizar Pedido</span>
+            <CircleArrowLeft className="mr-2 h-4 w-4" />
+            Anterior
           </Button>
         ) : (
-          <Button
-            onClick={nextStep}
-            className="bg-dark-green text-white hover:bg-dark-green/90 flex items-center gap-2"
-          >
-            <span className="hidden sm:inline">Siguiente</span>
-            <CircleArrowRight className="h-4 w-4" />
-          </Button>
+          <div></div>
         )}
       </div>
     </div>
