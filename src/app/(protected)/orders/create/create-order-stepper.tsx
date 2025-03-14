@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { CircleArrowLeft, CircleArrowRight, CircleCheck } from "lucide-react"
 import dynamic from "next/dynamic"
 import { toast } from "sonner"
+import { Product } from "@/types/products"
 
 const SelectCompany = dynamic(() => import("./select-company/SelectCompany"))
 const SelectCustomer = dynamic(() => import("./select-customer/SelectCustomer"))
@@ -23,17 +24,18 @@ interface FormData {
   companyId?: string | number;
   customer?: string;
   customerId?: string | number;
-  products: Product[];
+  orderInfo?: any;
+  products: Array<Product & { quantity: number }>;
   observations: string;
-  priceListId?: number
+  priceListId?: number;
 }
 
 export function CreateOrderStepper() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>({
-    company: null,
-    customer: null,
-    orderInfo: null,
+    company: undefined,
+    customer: undefined,
+    orderInfo: undefined,
     products: [],
     observations: "",
   })
@@ -45,10 +47,12 @@ export function CreateOrderStepper() {
   }
 
   const updateFormData = (data: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      ...data,
-    }))
+    console.log("Actualizando formData con:", data); // Añadir log para debug
+    setFormData((prev) => {
+      const newData = { ...prev, ...data };
+      console.log("Nuevo formData:", newData); // Añadir log para debug
+      return newData;
+    });
   }
 
   const handleStepComplete = () => {

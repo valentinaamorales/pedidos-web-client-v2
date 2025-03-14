@@ -1,15 +1,7 @@
 import { getAccessToken } from '@/app/actions/getAccessToken';
 import { axiosInstance } from '@/lib/axios';
 import axios from 'axios';
-
-export interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  // Añade otros campos que vengan del backend según sea necesario
-  price?: number;
-  code?: string;
-}
+import { Product } from '@/types/products';
 
 export class ProductService {
   static async searchProducts(

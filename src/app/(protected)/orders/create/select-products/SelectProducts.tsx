@@ -18,8 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { ProductService, Product as ApiProduct } from "@/app/api/products/product-service"
+import { ProductService } from "@/app/api/products/product-service"
 import { PriceListService, PriceList } from "@/app/api/pricelists/pricelist-service"
+import { Product as ApiProduct } from '@/types/products';
+
 
 // Extendemos el tipo Product para nuestro uso local
 interface Product extends ApiProduct {
@@ -59,9 +61,11 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
 
     const fetchPriceList = async () => {
       try {
+        const customerId = formData.customerId || '';
+        const companyId = formData.companyId || '';
         const data = await PriceListService.getPriceList(
-          formData.customerId,
-          formData.companyId
+          customerId,
+          companyId
         );
         console.log("Lista de precios cargada:", data);
         setPriceList(data);
@@ -73,7 +77,6 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
     fetchPriceList();
   }, [formData?.customerId, formData?.companyId]);
 
-  // Efecto para buscar productos cuando cambia el término de búsqueda
   useEffect(() => {
     // No buscar si el término es menor a 3 caracteres
     if (searchTerm.length < 3) {
@@ -95,7 +98,11 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
       
       try {
         const data = await ProductService.searchProducts(formData.companyId, searchTerm);
-        setFilteredProducts(data);
+        const productsWithQuantity = data.map(product => ({
+          ...product,
+          quantity: 1
+        }));
+        setFilteredProducts(productsWithQuantity);
       } catch (error) {
         console.error("Error buscando productos:", error);
         toast.error("Error al cargar los productos");
@@ -128,22 +135,28 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
     toast("Producto agregado", { description: `${product.name} ha sido agregado a tu pedido.` });
   }
 
-  const removeProduct = (id: string) => {
+  const removeProduct = (id: number) => {
     setProducts(products.filter((product) => product.id !== id));
     toast("Producto eliminado", { description: "El producto ha sido eliminado de tu pedido." });
   }
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (id: number, quantity: number) => {
     if (quantity <= 0) return;
     setProducts(products.map((product) => (product.id === id ? { ...product, quantity } : product)));
   }
 
   const handleSave = () => {
-    updateFormData({ 
-      products, 
-      observations,
+    console.log("Guardando productos:", products.length, products);
+    
+    const updatedData = { 
+      products: [...products], // Crear una nueva copia del array
+      observations, 
       priceListId: priceList?.id 
-    });
+    };
+    
+    console.log("Datos a guardar:", updatedData);
+    
+    updateFormData(updatedData);
     
     toast("Productos guardados", { 
       description: `Se han guardado ${products.length} productos en tu pedido.` 
@@ -209,7 +222,7 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
                     <div key={product.id} className="flex items-center justify-between py-2 border-b">
                       <div>
                         <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">Unidad: {product.unit}</p>
+                        <p className="text-sm text-muted-foreground">Unidad: {product.uom_id?.[1]}</p>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => addProduct(product)}>
                         <Plus className="h-4 w-4" />
@@ -271,7 +284,7 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
                           </Button>
                         </div>
                       </td>
-                      <td className="py-3">{product.unit}</td>
+                      <td className="py-3">{product.uom_id?.[1] || 'N/A'}</td>
                       <td className="py-3 text-right">
                         <Button
                           variant="ghost"
@@ -296,7 +309,7 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="font-medium">{product.name}</h4>
-                      <p className="text-sm text-muted-foreground">Unidad: {product.unit}</p>
+                      <p className="text-sm text-muted-foreground">Unidad: {product.uom_id?.[1] || 'N/A'}</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -318,7 +331,10 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center">{product.quantity}</span>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-center">{product.quantity}</span>
+                        <span className="text-xs text-muted-foreground">{product.uom_id?.[1] || ''}</span>
+                      </div>
                       <Button
                         variant="outline"
                         size="icon"
