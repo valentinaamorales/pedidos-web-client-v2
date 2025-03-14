@@ -41,6 +41,11 @@ export default function SelectCustomer({ formData, updateFormData, onComplete }:
     setIsMounted(true)
   }, [])
 
+  // Añadir un efecto que reinicie el estado isSubmitting cuando el componente se monte o actualice
+  useEffect(() => {
+    setIsSubmitting(false);
+  }, [formData])
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: formData || {},
@@ -85,12 +90,14 @@ export default function SelectCustomer({ formData, updateFormData, onComplete }:
   }, [searchTerm, formData.companyId, isMounted]);
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
+    if (isSubmitting) return;
     setIsSubmitting(true)
     try {
       const selectedCustomer = customers.find(customer => customer.name === data.customer);
       
       if (!selectedCustomer) {
         toast.error("No se encontró el cliente seleccionado");
+        setIsSubmitting(false);
         return;
       }
       

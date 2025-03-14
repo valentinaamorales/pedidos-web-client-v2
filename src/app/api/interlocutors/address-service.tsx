@@ -1,6 +1,6 @@
 import { Address } from "@/types/addresses";
 import { getAccessToken } from '@/app/actions/getAccessToken';
-import { axiosInstance } from '@/lib/axios'; // Importar la instancia configurada
+import { axiosInstance } from '@/lib/axios';
 
 // Direcciones por defecto para casos donde la API no devuelve datos
 const defaultDeliveryAddress: Address = {

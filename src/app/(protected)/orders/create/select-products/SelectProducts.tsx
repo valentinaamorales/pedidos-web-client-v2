@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, Plus, Trash2, Minus } from "lucide-react"
+import { Search, Plus, Trash2, Minus, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -18,75 +18,106 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { ProductService, Product as ApiProduct } from "@/app/api/products/product-service"
 
-interface Product {
-  id: string
-  name: string
-  quantity: number
-  unit: string
+// Extendemos el tipo Product para nuestro uso local
+interface Product extends ApiProduct {
+  quantity: number;
 }
 
 interface SelectProductsProps {
   formData?: {
-    products?: Product[]
-    observations?: string
+    products?: Product[];
+    observations?: string;
+    companyId?: string | number; // Añadido para acceder al ID de la compañía
   }
-  updateFormData: (data: { products: Product[]; observations: string }) => void
+  updateFormData: (data: { products: Product[]; observations: string }) => void;
+  onComplete?: () => void; // Opcional para mantener consistencia con otros pasos
 }
 
-export default function SelectProducts({ formData, updateFormData }: SelectProductsProps) {
-  const [products, setProducts] = useState<Product[]>(formData?.products || [])
-  const [observations, setObservations] = useState(formData?.observations || "")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+export default function SelectProducts({ formData, updateFormData, onComplete }: SelectProductsProps) {
+  const [products, setProducts] = useState<Product[]>(formData?.products || []);
+  const [observations, setObservations] = useState(formData?.observations || "");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Mock product catalog
-  const productCatalog = [
-    { id: "1", name: "Producto A", unit: "kg" },
-    { id: "2", name: "Producto B", unit: "L" },
-    { id: "3", name: "Producto C", unit: "unidad" },
-    { id: "4", name: "Producto D", unit: "kg" },
-    { id: "5", name: "Producto E", unit: "L" },
-  ]
-
+  // Efecto para buscar productos cuando cambia el término de búsqueda
   useEffect(() => {
-    const filtered = productCatalog
-      .filter((product) => product.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .map((product) => ({ ...product, quantity: 0 }))
-    setFilteredProducts(filtered)
-  }, [searchTerm])
+    // No buscar si el término es menor a 3 caracteres
+    if (searchTerm.length < 3) {
+      if (searchTerm.length > 0) {
+        // Limpiar resultados si hay texto pero no suficientes caracteres
+        setFilteredProducts([]);
+      }
+      return;
+    }
+    
+    const searchProducts = async () => {
+      if (!formData?.companyId) {
+        toast.error("No se ha seleccionado una empresa");
+        return;
+      }
+      
+      setIsLoading(true);
+      setHasSearched(true);
+      
+      try {
+        const data = await ProductService.searchProducts(formData.companyId, searchTerm);
+        setFilteredProducts(data);
+      } catch (error) {
+        console.error("Error buscando productos:", error);
+        toast.error("Error al cargar los productos");
+        setFilteredProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Debounce para evitar demasiadas llamadas mientras se escribe
+    const timeoutId = setTimeout(() => {
+      searchProducts();
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, formData?.companyId]);
 
-  const addProduct = (product: Product) => {
-    const existingProduct = products.find((p) => p.id === product.id)
+  const addProduct = (product: ApiProduct) => {
+    const existingProduct = products.find((p) => p.id === product.id);
 
     if (existingProduct) {
-      toast("Producto ya agregado", { description: "Este producto ya está en tu lista." })
-      return
+      toast("Producto ya agregado", { description: "Este producto ya está en tu lista." });
+      return;
     }
 
-    setProducts([...products, { ...product, quantity: 1 }])
-    setIsDialogOpen(false)
+    const newProduct: Product = { ...product, quantity: 1 };
+    setProducts([...products, newProduct]);
+    setIsDialogOpen(false);
 
-    toast("Producto agregado", { description: `${product.name} ha sido agregado a tu pedido.` })
+    toast("Producto agregado", { description: `${product.name} ha sido agregado a tu pedido.` });
   }
 
   const removeProduct = (id: string) => {
-    setProducts(products.filter((product) => product.id !== id))
-
-    toast("Producto eliminado", { description: "El producto ha sido eliminado de tu pedido." })
+    setProducts(products.filter((product) => product.id !== id));
+    toast("Producto eliminado", { description: "El producto ha sido eliminado de tu pedido." });
   }
 
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) return
-
-    setProducts(products.map((product) => (product.id === id ? { ...product, quantity } : product)))
+    if (quantity <= 0) return;
+    setProducts(products.map((product) => (product.id === id ? { ...product, quantity } : product)));
   }
 
   const handleSave = () => {
-    updateFormData({ products, observations })
-
-    toast("Productos guardados", { description: `Se han guardado ${products.length} productos en tu pedido.` })
+    updateFormData({ products, observations });
+    
+    toast("Productos guardados", { 
+      description: `Se han guardado ${products.length} productos en tu pedido.` 
+    });
+    
+    // Si hay un callback de onComplete, lo llamamos
+    if (onComplete) onComplete();
   }
 
   return (
@@ -121,7 +152,7 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="search"
-                      placeholder="Buscar productos..."
+                      placeholder="Escribe al menos 3 caracteres para buscar productos..."
                       className="pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -129,8 +160,19 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
                   </div>
                 </div>
               </div>
+              
+              {searchTerm.length > 0 && searchTerm.length < 3 && (
+                <p className="text-sm text-muted-foreground mt-1 mb-2">
+                  Escribe al menos 3 caracteres para iniciar la búsqueda
+                </p>
+              )}
+
               <ScrollArea className="h-[200px] rounded-md border p-4">
-                {filteredProducts.length > 0 ? (
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
                     <div key={product.id} className="flex items-center justify-between py-2 border-b">
                       <div>
@@ -143,7 +185,11 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
                     </div>
                   ))
                 ) : (
-                  <p className="text-center py-4 text-muted-foreground">No se encontraron productos</p>
+                  <p className="text-center py-4 text-muted-foreground">
+                    {hasSearched && searchTerm.length >= 3 
+                      ? "No se encontraron productos" 
+                      : "Escribe para buscar productos"}
+                  </p>
                 )}
               </ScrollArea>
               <DialogFooter className="sm:justify-end">
@@ -178,7 +224,7 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateQuantity(product.id, product.quantity - 1)}
+                            onClick={() => updateQuantity(product.id, Math.max(1, product.quantity - 1))}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -210,10 +256,11 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
               </table>
             </div>
 
-            {/* Mobile card view */}
+            {/* Mobile card view - mantenemos igual */}
             <div className="sm:hidden space-y-4">
               {products.map((product) => (
                 <div key={product.id} className="border rounded-lg p-4 bg-card">
+                  {/* Contenido móvil igual que antes */}
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="font-medium">{product.name}</h4>
@@ -235,7 +282,7 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
                         variant="outline"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => updateQuantity(product.id, product.quantity - 1)}
+                        onClick={() => updateQuantity(product.id, Math.max(1, product.quantity - 1))}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
@@ -273,7 +320,10 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleSave} className="bg-dark-green hover:bg-dark-green/90 w-full sm:w-auto">
+          <Button 
+            onClick={handleSave} 
+            className="bg-dark-green hover:bg-dark-green/90 w-full sm:w-auto"
+          >
             Guardar Productos
           </Button>
         </div>
@@ -281,4 +331,3 @@ export default function SelectProducts({ formData, updateFormData }: SelectProdu
     </Card>
   )
 }
-
