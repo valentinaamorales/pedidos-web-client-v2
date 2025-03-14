@@ -19,12 +19,13 @@ const steps = [
 ]
 
 interface FormData {
-  company: any;
-  customer: any;
-  orderInfo: any;
-  products: never[];
+  company?: string;
+  companyId?: string | number;
+  customer?: string;
+  customerId?: string | number;
+  products: Product[];
   observations: string;
-  [key: string]: any;
+  priceListId?: number
 }
 
 export function CreateOrderStepper() {

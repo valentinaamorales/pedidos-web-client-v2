@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ProductService, Product as ApiProduct } from "@/app/api/products/product-service"
+import { PriceListService, PriceList } from "@/app/api/pricelists/pricelist-service"
 
 // Extendemos el tipo Product para nuestro uso local
 interface Product extends ApiProduct {
@@ -29,13 +30,18 @@ interface SelectProductsProps {
   formData?: {
     products?: Product[];
     observations?: string;
-    companyId?: string | number; // Añadido para acceder al ID de la compañía
+    companyId?: string | number; 
+    customerId?: string | number; // Añadido para acceder al ID del cliente
   }
-  updateFormData: (data: { products: Product[]; observations: string }) => void;
-  onComplete?: () => void; // Opcional para mantener consistencia con otros pasos
+  updateFormData: (data: Record<string, any>) => void; // Cambiado para aceptar más campos
+  onComplete?: () => void; 
 }
 
 export default function SelectProducts({ formData, updateFormData, onComplete }: SelectProductsProps) {
+  // Añade el estado para la lista de precios
+  const [priceList, setPriceList] = useState<PriceList | null>(null);
+  
+  // Mantén los estados existentes
   const [products, setProducts] = useState<Product[]>(formData?.products || []);
   const [observations, setObservations] = useState(formData?.observations || "");
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +49,29 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Añade un efecto para cargar la lista de precios cuando se monte el componente
+  useEffect(() => {
+    if (!formData?.companyId || !formData?.customerId) {
+      console.log("No se puede cargar la lista de precios sin companyId y customerId");
+      return;
+    }
+
+    const fetchPriceList = async () => {
+      try {
+        const data = await PriceListService.getPriceList(
+          formData.customerId,
+          formData.companyId
+        );
+        console.log("Lista de precios cargada:", data);
+        setPriceList(data);
+      } catch (error) {
+        console.error("Error al cargar la lista de precios:", error);
+      }
+    };
+
+    fetchPriceList();
+  }, [formData?.customerId, formData?.companyId]);
 
   // Efecto para buscar productos cuando cambia el término de búsqueda
   useEffect(() => {
@@ -110,13 +139,16 @@ export default function SelectProducts({ formData, updateFormData, onComplete }:
   }
 
   const handleSave = () => {
-    updateFormData({ products, observations });
+    updateFormData({ 
+      products, 
+      observations,
+      priceListId: priceList?.id 
+    });
     
     toast("Productos guardados", { 
       description: `Se han guardado ${products.length} productos en tu pedido.` 
     });
     
-    // Si hay un callback de onComplete, lo llamamos
     if (onComplete) onComplete();
   }
 
