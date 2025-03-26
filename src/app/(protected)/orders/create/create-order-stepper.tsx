@@ -6,6 +6,8 @@ import { CircleArrowLeft, CircleArrowRight, CircleCheck } from "lucide-react"
 import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { Product } from "@/types/products"
+import { useRouter } from "next/navigation"
+import { OrderService} from "@/app/api/order/order-service"
 
 const SelectCompany = dynamic(() => import("./select-company/SelectCompany"))
 const SelectCustomer = dynamic(() => import("./select-customer/SelectCustomer"))
@@ -28,10 +30,14 @@ interface FormData {
   products: Array<Product & { quantity: number }>;
   observations: string;
   priceListId?: number;
+  deliveryAddress?: any;
+  invoiceAddress?: any;
 }
 
 export function CreateOrderStepper() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     company: undefined,
     customer: undefined,
@@ -47,7 +53,6 @@ export function CreateOrderStepper() {
   }
 
   const updateFormData = (data: any) => {
-    console.log("Actualizando formData con:", data); // Añadir log para debug
     setFormData((prev) => {
       const newData = { ...prev, ...data };
       console.log("Nuevo formData:", newData); // Añadir log para debug
@@ -65,22 +70,62 @@ export function CreateOrderStepper() {
   }
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
-      // Here you would submit the complete form data to your API
-      console.log("Submitting order:", formData)
+      if (!formData.companyId || !formData.customerId) {
+        throw new Error("Selecciona una empresa y un cliente para continuar")
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!formData.products || formData.products.length === 0) {
+        throw new Error("Agrega al menos un producto para continuar")
+      }
 
-      toast("Pedido creado con éxito",
-        {description: "Tu pedido ha sido enviado correctamente.",
+      // Formatear la fecha actual en formato YYYY-MM-DD
+      const shippingAddressId = formData.deliveryAddress?.id || null
+      const invoiceAddressId = formData.invoiceAddress?.id || null
+
+      const today = new Date();
+      const dateOrder = today.toISOString().replace('T', ' ').split('.')[0];
+
+      //Preparar los items del pedido
+      const items = formData.products.map((product) => ({
+        productId: product.id,
+        quantity: product.quantity,
+        price: product.price,
+      }))
+
+      //constuir el objeto de pedido
+      const orderData = {
+        companyId: Number(formData.companyId),
+        customerId: Number(formData.customerId),
+        dateOrder,
+        priceListId: formData.priceListId || null,
+        customerShippingAdressId: shippingAddressId ? Number(shippingAddressId) : null,
+        customerInvoiceAdressId: invoiceAddressId ? Number(invoiceAddressId) : null,
+        items,
+      }
+
+      console.log("Datos del pedido:", orderData);
+
+      const response = await OrderService.createOrder(orderData);
+
+      toast.success("Pedido creado exitosamente!", {
+        description: `El pedido #${response.id} ha sido creado correctamente.`,
+        duration: 5000
       })
 
-      // Reset form or redirect
-    } catch (error) {
+      setTimeout(() => {
+        router.push('/orders/');
+      }, 1500);
+
+    } catch (error: any) {
       toast("Error al crear el pedido",
-        {description: "Ha ocurrido un error al enviar tu pedido. Por favor intenta nuevamente."
-      })
+        {description: error.message || "Ha ocurrido un error al enviar tu pedido. Por favor intenta nuevamente."
+      });
+    } finally{
+      setIsSubmitting(false);
     }
   }
 
@@ -103,7 +148,7 @@ export function CreateOrderStepper() {
                       : "bg-gray-100 text-gray-400"
                   }`}
               >
-                {index < currentStep ? "✓" : index + 1}
+                {index < currentStep ? <CircleCheck className="h-5 w-5" />: index + 1}
               </div>
               <span
                 className={`text-xs sm:text-sm font-medium ${

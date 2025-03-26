@@ -38,7 +38,7 @@ export class AddressService {
       }
       
       // Usar el endpoint correcto
-      const url = `/interlocutors?parent_id=${parentId}&type=${type}`;
+      const url = `/interlocutors?parent_id=${parentId}&contact_type=${type}`;
       
       // Usar axiosInstance en lugar de axios directamente
       const { data } = await axiosInstance.get<Address[]>(url, {
@@ -65,6 +65,7 @@ export class AddressService {
         
         return {
           ...address,
+          id: String(address.id),
           address: fullAddress || address.street || "Dirección no especificada"
         };
       });
