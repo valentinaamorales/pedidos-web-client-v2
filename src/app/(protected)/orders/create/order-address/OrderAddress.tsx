@@ -103,19 +103,19 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
     try {
       // Obtenemos las direcciones completas
       const selectedDeliveryAddress = deliveryAddresses.find(
-        address => address.id === data.merchandiseRecipient
+        address => String(address.id) === String(data.merchandiseRecipient)
       );
       
       const selectedInvoiceAddress = invoiceAddresses.find(
-        address => address.id === data.billingRecipient
+        address => String(address.id) === String(data.billingRecipient)
       );
 
       const updatedFormData = {
         ...formData,
         ...data,
         // Guardamos información adicional para uso posterior
-        deliveryAddress: selectedDeliveryAddress,
-        invoiceAddress: selectedInvoiceAddress
+        deliveryAddress: selectedDeliveryAddress || null,
+        invoiceAddress: selectedInvoiceAddress || null
       };
       
       updateFormData(updatedFormData);

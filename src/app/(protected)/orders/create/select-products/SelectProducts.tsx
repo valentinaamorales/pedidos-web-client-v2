@@ -37,9 +37,10 @@ interface SelectProductsProps {
   }
   updateFormData: (data: Record<string, any>) => void; // Cambiado para aceptar más campos
   onComplete?: () => void; 
+  createOrder?: () => void;
 }
 
-export default function SelectProducts({ formData, updateFormData, onComplete }: SelectProductsProps) {
+export default function SelectProducts({ formData, updateFormData, onComplete, createOrder }: SelectProductsProps) {
   // Añade el estado para la lista de precios
   const [priceList, setPriceList] = useState<PriceList | null>(null);
   
