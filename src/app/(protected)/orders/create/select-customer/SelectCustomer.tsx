@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Loader2, Search, Check, ChevronsUpDown } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { CustomerService } from "@/app/api/customers/customer-service"
 import { Customer } from "@/types/customers"
 import { useForm } from "react-hook-form"
@@ -38,7 +37,6 @@ interface CustomerWithSelection extends Customer {
 // Usar forwardRef para exponer métodos al componente padre
 const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onValidationChange }: SelectCustomerProps, ref) => {
   const [isMounted, setIsMounted] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [customers, setCustomers] = useState<CustomerWithSelection[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -113,8 +111,6 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     setHasSearched(true);
     
     try {
-      // Aquí asumimos que el servicio soporta paginación
-      // Si no, necesitarás modificar la API para aceptar parámetros page y limit
       const data = await CustomerService.searchCustomers(
         formData.companyId, 
         term,
@@ -122,10 +118,8 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
         10 // tamaño de página
       );
       
-      // Detectar si hay más resultados
       setHasMore(data.length === 10);
       
-      // Actualizar la lista (append o reemplazar)
       if (append) {
         setCustomers(prev => [...prev, ...data]);
       } else {
@@ -140,7 +134,6 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     }
   };
 
-  // Manejar cambio de término de búsqueda
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setPage(1); // Reiniciar página
@@ -170,7 +163,6 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
   };
 
   if (!isMounted) {
-    // Skeleton de carga
     return (
       <Card className="w-full mx-auto">
         <CardHeader className="space-y-1">

@@ -33,9 +33,9 @@ interface SelectProductsProps {
     products?: Product[];
     observations?: string;
     companyId?: string | number; 
-    customerId?: string | number; // Añadido para acceder al ID del cliente
+    customerId?: string | number;
   }
-  updateFormData: (data: Record<string, any>) => void; // Cambiado para aceptar más campos
+  updateFormData: (data: Record<string, any>) => void;
   onComplete?: () => void; 
   createOrder?: () => void;
   onValidationChange?: (isValid: boolean) => void;
@@ -76,7 +76,6 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
       
       updateFormData(updatedData);
       
-      // No mostrar toast de guardado aquí, el stepper debería mostrar un mensaje de avance
       return true;
     }
   }));
@@ -144,7 +143,7 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
     // Debounce para evitar demasiadas llamadas mientras se escribe
     const timeoutId = setTimeout(() => {
       searchProducts();
-    }, 300);
+    }, 500);
     
     return () => clearTimeout(timeoutId);
   }, [searchTerm, formData?.companyId]);

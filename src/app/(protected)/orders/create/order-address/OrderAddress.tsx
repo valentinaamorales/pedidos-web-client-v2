@@ -13,9 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Address } from "@/types/addresses"
 import { AddressService } from "@/app/api/interlocutors/address-service"
 
-// Modificar el esquema para que las direcciones sean opcionales
 const FormSchema = z.object({
-  // Hacemos las direcciones opcionales
   merchandiseRecipient: z.string().optional(),
   billingRecipient: z.string().optional(),
   observations: z.string().optional(),
@@ -30,7 +28,6 @@ interface OrderAddressProps {
 }
 
 const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValidationChange }: OrderAddressProps, ref) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [invoiceAddresses, setInvoiceAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +53,6 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
       updateFormData({
         ...formData,
         ...data,
-        // Guardar objetos completos para uso posterior
         deliveryAddress: selectedDeliveryAddress,
         invoiceAddress: selectedInvoiceAddress
       });
@@ -65,14 +61,12 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
     }
   }));
 
-  // Marcar este paso como siempre válido ya que direcciones son opcionales
   useEffect(() => {
     if (onValidationChange) {
       onValidationChange(true);
     }
   }, [onValidationChange]);
 
-  // Cargar direcciones cuando el componente se monta
   useEffect(() => {
     if (!formData.customerId) {
       toast.error("No se ha seleccionado un cliente");
@@ -87,7 +81,6 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
           const deliveryData = await AddressService.getAddresses(formData.customerId, "delivery");
           setDeliveryAddresses(deliveryData);
           
-          // Si hay una dirección previamente seleccionada, establecerla
           if (formData.deliveryAddress?.id) {
             form.setValue("merchandiseRecipient", formData.deliveryAddress.id);
           }
@@ -96,12 +89,10 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
           setDeliveryAddresses([]);
         }
         
-        // Direcciones de facturación
         try {
           const invoiceData = await AddressService.getAddresses(formData.customerId, "invoice");
           setInvoiceAddresses(invoiceData);
           
-          // Si hay una dirección previamente seleccionada, establecerla  
           if (formData.invoiceAddress?.id) {
             form.setValue("billingRecipient", formData.invoiceAddress.id);
           }
@@ -194,7 +185,6 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
                           <SelectItem value="empty" disabled>No hay direcciones disponibles</SelectItem>
                         ) : (
                           <>
-                            {/* Opción para no seleccionar dirección */}
                             <SelectItem value="none">
                               -- Sin dirección de facturación --
                             </SelectItem>
