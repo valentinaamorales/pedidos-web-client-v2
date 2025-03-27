@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,13 +38,11 @@ interface SelectProductsProps {
   updateFormData: (data: Record<string, any>) => void; // Cambiado para aceptar más campos
   onComplete?: () => void; 
   createOrder?: () => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
-export default function SelectProducts({ formData, updateFormData, onComplete, createOrder }: SelectProductsProps) {
-  // Añade el estado para la lista de precios
+const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, createOrder, onValidationChange }: SelectProductsProps, ref) => {
   const [priceList, setPriceList] = useState<PriceList | null>(null);
-  
-  // Mantén los estados existentes
   const [products, setProducts] = useState<Product[]>(formData?.products || []);
   const [observations, setObservations] = useState(formData?.observations || "");
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,6 +50,36 @@ export default function SelectProducts({ formData, updateFormData, onComplete, c
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(products.length > 0);
+    }
+  }, [products, onValidationChange]);
+  
+  // Exponer método saveData al padre
+  useImperativeHandle(ref, () => ({
+    saveData: () => {
+      // Validar si hay productos
+      if (products.length === 0) {
+        toast.error("Debes añadir al menos un producto");
+        return false;
+      }
+      
+      console.log("Guardando productos:", products.length, products);
+      
+      const updatedData = { 
+        products: [...products],
+        observations, 
+        priceListId: priceList?.id 
+      };
+      
+      updateFormData(updatedData);
+      
+      // No mostrar toast de guardado aquí, el stepper debería mostrar un mensaje de avance
+      return true;
+    }
+  }));
 
   // Añade un efecto para cargar la lista de precios cuando se monte el componente
   useEffect(() => {
@@ -367,16 +395,11 @@ export default function SelectProducts({ formData, updateFormData, onComplete, c
             className="min-h-[100px]"
           />
         </div>
-
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleSave} 
-            className="bg-dark-green hover:bg-dark-green/90 w-full sm:w-auto"
-          >
-            Guardar Productos
-          </Button>
-        </div>
       </CardContent>
     </Card>
-  )
-}
+    )
+  }
+);
+
+SelectProducts.displayName = "SelectProducts";
+export default SelectProducts;

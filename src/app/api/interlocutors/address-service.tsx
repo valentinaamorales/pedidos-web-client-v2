@@ -1,29 +1,6 @@
-import { Address } from "@/types/addresses";
+import { axiosInstance } from "@/lib/axios";
+import { Address } from "@/types/address";
 import { getAccessToken } from '@/app/actions/getAccessToken';
-import { axiosInstance } from '@/lib/axios';
-
-// Direcciones por defecto para casos donde la API no devuelve datos
-const defaultDeliveryAddress: Address = {
-  id: "delivery-default",
-  name: "Dirección Principal",
-  type: "delivery",
-  city: "Ciudad de México",
-  street: "Calle Principal #123",
-  state: [1, "CDMX"],
-  country: [52, "México"],
-  address: "Calle Principal #123, Ciudad de México, CDMX"
-};
-
-const defaultInvoiceAddress: Address = {
-  id: "invoice-default",
-  name: "Dirección Fiscal",
-  type: "invoice",
-  city: "Ciudad de México",
-  street: "Av. Reforma #456",
-  state: [1, "CDMX"],
-  country: [52, "México"],
-  address: "Av. Reforma #456, Ciudad de México, CDMX"
-};
 
 export class AddressService {
   static async getAddresses(
@@ -37,20 +14,21 @@ export class AddressService {
         throw new Error("No access token available");
       }
       
-      // Usar el endpoint correcto
       const url = `/interlocutors?parent_id=${parentId}&contact_type=${type}`;
       
-      // Usar axiosInstance en lugar de axios directamente
       const { data } = await axiosInstance.get<Address[]>(url, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Cache-Control': 'no-cache',
+        },
+        validateStatus: function (status) {
+          return (status >= 200 && status < 300) || status === 404;
         }
       });
       
-      // Si la respuesta está vacía, devolver dirección por defecto para este tipo
-      if (!data || data.length === 0) {
-        return type === "delivery" ? [defaultDeliveryAddress] : [defaultInvoiceAddress];
+      if (response.status === 404 || !response.data || response.data.length === 0) {
+        console.log(`No se encontraron direcciones de ${type}`);
+        return [];
       }
       
       // Mejorar los datos para mostrar en la UI
@@ -65,16 +43,18 @@ export class AddressService {
         
         return {
           ...address,
-          id: String(address.id),
+          id: String(address.id), // Asegurar que el ID sea string
           address: fullAddress || address.street || "Dirección no especificada"
         };
       });
       
-    } catch (error) {
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+
       console.error(`Error fetching ${type} addresses:`, error);
-      
-      // En caso de error, devolver direcciones por defecto
-      return type === "delivery" ? [defaultDeliveryAddress] : [defaultInvoiceAddress];
+      return [];
+      }
     }
   }
-}

@@ -1,45 +1,23 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
-import { Address } from '@/types/addresses';
-import { AddressService } from '@/app/api/interlocutors/address-service';
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { toast } from "sonner"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Loader2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Address } from "@/types/address"
+import { AddressService } from "@/app/api/interlocutors/address-service"
 
+// Modificar el esquema para que las direcciones sean opcionales
 const FormSchema = z.object({
-  merchandiseRecipient: z.string({
-    required_error: 'Por favor selecciona una dirección de entrega.',
-  }),
-  billingRecipient: z.string({
-    required_error: 'Por favor selecciona una dirección de facturación.',
-  }),
+  // Hacemos las direcciones opcionales
+  merchandiseRecipient: z.string().optional(),
+  billingRecipient: z.string().optional(),
   observations: z.string().optional(),
   file: z.any().optional(),
 });
@@ -47,20 +25,52 @@ const FormSchema = z.object({
 interface OrderAddressProps {
   formData: Record<string, any>;
   updateFormData: (data: Record<string, any>) => void;
-  onComplete: () => void;
+  onComplete?: () => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
-export default function OrderAddress({ formData, updateFormData, onComplete }: OrderAddressProps) {
+const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValidationChange }: OrderAddressProps, ref) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [invoiceAddresses, setInvoiceAddresses] = useState<Address[]>([]);
-  const [isLoadingDelivery, setIsLoadingDelivery] = useState(false);
-  const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: formData || {},
   });
+
+  // Exponer método para guardar datos
+  useImperativeHandle(ref, () => ({
+    saveData: () => {
+      const data = form.getValues();
+      
+      // Buscar direcciones completas por su ID
+      const selectedDeliveryAddress = data.merchandiseRecipient ? 
+        deliveryAddresses.find(address => String(address.id) === String(data.merchandiseRecipient)) : null;
+        
+      const selectedInvoiceAddress = data.billingRecipient ?
+        invoiceAddresses.find(address => String(address.id) === String(data.billingRecipient)) : null;
+      
+      // Actualizar formData
+      updateFormData({
+        ...formData,
+        ...data,
+        // Guardar objetos completos para uso posterior
+        deliveryAddress: selectedDeliveryAddress || null,
+        invoiceAddress: selectedInvoiceAddress || null
+      });
+      
+      return true; // Siempre permitir continuar ya que las direcciones son opcionales
+    }
+  }));
+
+  // Marcar este paso como siempre válido ya que direcciones son opcionales
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(true);
+    }
+  }, [onValidationChange]);
 
   // Cargar direcciones cuando el componente se monta
   useEffect(() => {
@@ -70,69 +80,45 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
     }
 
     const fetchAddresses = async () => {
-      // Cargar direcciones de entrega
-      setIsLoadingDelivery(true);
+      setIsLoading(true);
+      
       try {
-        const deliveryData = await AddressService.getAddresses(formData.customerId, "delivery");
-        setDeliveryAddresses(deliveryData);
+        try {
+          const deliveryData = await AddressService.getAddresses(formData.customerId, "delivery");
+          setDeliveryAddresses(deliveryData);
+          
+          // Si hay una dirección previamente seleccionada, establecerla
+          if (formData.deliveryAddress?.id) {
+            form.setValue("merchandiseRecipient", formData.deliveryAddress.id);
+          }
+        } catch (deliveryError) {
+          console.log("Error cargando direcciones de entrega:", deliveryError);
+          setDeliveryAddresses([]);
+        }
+        
+        // Direcciones de facturación
+        try {
+          const invoiceData = await AddressService.getAddresses(formData.customerId, "invoice");
+          setInvoiceAddresses(invoiceData);
+          
+          // Si hay una dirección previamente seleccionada, establecerla  
+          if (formData.invoiceAddress?.id) {
+            form.setValue("billingRecipient", formData.invoiceAddress.id);
+          }
+        } catch (invoiceError) {
+          console.log("Error cargando direcciones de facturación:", invoiceError);
+          setInvoiceAddresses([]);
+        }
+        
       } catch (error) {
-        console.error("Error fetching delivery addresses:", error);
-        toast.error("Error al cargar direcciones de entrega");
+        console.error("Error general cargando direcciones:", error);
       } finally {
-        setIsLoadingDelivery(false);
-      }
-
-      // Cargar direcciones de facturación
-      setIsLoadingInvoice(true);
-      try {
-        const invoiceData = await AddressService.getAddresses(formData.customerId, "invoice");
-        setInvoiceAddresses(invoiceData);
-      } catch (error) {
-        console.error("Error fetching invoice addresses:", error);
-        toast.error("Error al cargar direcciones de facturación");
-      } finally {
-        setIsLoadingInvoice(false);
+        setIsLoading(false);
       }
     };
 
     fetchAddresses();
-  }, [formData.customerId]);
-
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
-    setIsSubmitting(true);
-    try {
-      // Obtenemos las direcciones completas
-      const selectedDeliveryAddress = deliveryAddresses.find(
-        address => String(address.id) === String(data.merchandiseRecipient)
-      );
-      
-      const selectedInvoiceAddress = invoiceAddresses.find(
-        address => String(address.id) === String(data.billingRecipient)
-      );
-
-      const updatedFormData = {
-        ...formData,
-        ...data,
-        // Guardamos información adicional para uso posterior
-        deliveryAddress: selectedDeliveryAddress || null,
-        invoiceAddress: selectedInvoiceAddress || null
-      };
-      
-      updateFormData(updatedFormData);
-      
-      toast('Información del pedido guardada', {
-        description: 'Las direcciones de entrega y facturación han sido guardadas correctamente.',
-      });
-
-      onComplete();
-    } catch (error) {
-      toast('Error', {
-        description: 'Hubo un problema al guardar la información del pedido.'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+  }, [formData.customerId, form]);
 
   return (
     <Card className="mx-auto w-full">
@@ -140,16 +126,10 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
         <CardTitle className="text-2xl font-bold">
           Información del Pedido
         </CardTitle>
-        <CardDescription className="text-md text-muted-foreground">
-          Selecciona las direcciones de entrega y facturación para el pedido.
-        </CardDescription>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="w-full space-y-4"
-          >
+          <div className="w-full space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -159,25 +139,31 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
                     <FormLabel>Dirección de Entrega</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isLoadingDelivery}
+                      value={field.value}
+                      disabled={isLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={isLoadingDelivery ? "Cargando direcciones..." : "Seleccionar dirección"} />
+                          <SelectValue placeholder={isLoading ? "Cargando direcciones..." : "Seleccionar dirección"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {isLoadingDelivery ? (
+                        {isLoading ? (
                           <SelectItem value="loading" disabled>Cargando direcciones...</SelectItem>
                         ) : deliveryAddresses.length === 0 ? (
                           <SelectItem value="empty" disabled>No hay direcciones disponibles</SelectItem>
                         ) : (
-                          deliveryAddresses.map((address) => (
-                            <SelectItem key={address.id} value={address.id}>
-                              {address.name || "Dirección"} - {address.address}
+                          <>
+                            {/* Opción para no seleccionar dirección */}
+                            <SelectItem value="">
+                              -- Sin dirección de entrega --
                             </SelectItem>
-                          ))
+                            {deliveryAddresses.map((address) => (
+                              <SelectItem key={address.id} value={String(address.id)}>
+                                {address.name || "Dirección"} - {address.address}
+                              </SelectItem>
+                            ))}
+                          </>
                         )}
                       </SelectContent>
                     </Select>
@@ -193,25 +179,31 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
                     <FormLabel>Dirección de Facturación</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isLoadingInvoice}
+                      value={field.value}
+                      disabled={isLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={isLoadingInvoice ? "Cargando direcciones..." : "Seleccionar dirección"} />
+                          <SelectValue placeholder={isLoading ? "Cargando direcciones..." : "Seleccionar dirección"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {isLoadingInvoice ? (
+                        {isLoading ? (
                           <SelectItem value="loading" disabled>Cargando direcciones...</SelectItem>
                         ) : invoiceAddresses.length === 0 ? (
                           <SelectItem value="empty" disabled>No hay direcciones disponibles</SelectItem>
                         ) : (
-                          invoiceAddresses.map((address) => (
-                            <SelectItem key={address.id} value={address.id}>
-                              {address.name || "Dirección"} - {address.address}
+                          <>
+                            {/* Opción para no seleccionar dirección */}
+                            <SelectItem value="">
+                              -- Sin dirección de facturación --
                             </SelectItem>
-                          ))
+                            {invoiceAddresses.map((address) => (
+                              <SelectItem key={address.id} value={String(address.id)}>
+                                {address.name || "Dirección"} - {address.address}
+                              </SelectItem>
+                            ))}
+                          </>
                         )}
                       </SelectContent>
                     </Select>
@@ -226,11 +218,11 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
               name="observations"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observaciones</FormLabel>
+                  <FormLabel>Observaciones (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Ingresa cualquier observación o instrucción especial para el pedido"
-                      className="resize-none"
+                      placeholder="Añade observaciones para tu pedido aquí"
+                      className="min-h-[120px]"
                       {...field}
                     />
                   </FormControl>
@@ -238,26 +230,12 @@ export default function OrderAddress({ formData, updateFormData, onComplete }: O
                 </FormItem>
               )}
             />
-            
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                className="bg-dark-green hover:bg-dark-green/90 text-white"
-                disabled={isSubmitting || isLoadingDelivery || isLoadingInvoice}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Procesando
-                  </>
-                ) : (
-                  "Continuar"
-                )}
-              </Button>
-            </div>
-          </form>
+          </div>
         </Form>
       </CardContent>
     </Card>
   );
-}
+});
+
+OrderAddress.displayName = "OrderAddress";
+export default OrderAddress;

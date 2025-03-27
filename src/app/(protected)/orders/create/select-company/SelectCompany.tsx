@@ -1,6 +1,6 @@
 "use client"
  
-import { useState, useEffect } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -23,9 +23,10 @@ interface SelectCompanyProps {
   formData: Record<string, any>;
   updateFormData: (data: Record<string, any>) => void;
   onComplete: () => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
  
-export default function SelectCompany({ formData, updateFormData, onComplete }: SelectCompanyProps) {
+const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onValidationChange }: SelectCompanyProps, ref) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -34,7 +35,61 @@ export default function SelectCompany({ formData, updateFormData, onComplete }: 
     resolver: zodResolver(FormSchema),
     defaultValues: formData || {},
   })
- 
+
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      if (onValidationChange) {
+        // Validar cuando cambia el valor
+        onValidationChange(!!values.company);
+      }
+    });
+    
+    // También validar inmediatamente con el valor actual
+    if (onValidationChange) {
+      const currentValue = form.getValues("company");
+      onValidationChange(!!currentValue);
+    }
+    
+    return () => subscription.unsubscribe();
+  }, [form, onValidationChange]);
+
+  useEffect(() => {
+    if (onValidationChange) {
+      const currentValue = form.getValues("company");
+      onValidationChange(!!currentValue);
+    }
+  }, [form, onValidationChange]);
+  
+  // Exponer método saveData al componente padre
+  useImperativeHandle(ref, () => ({
+    saveData: () => {
+      const data = form.getValues();
+      
+      // Validar que se haya seleccionado una compañía
+      if (!data.company) {
+        toast.error("Por favor selecciona una empresa");
+        return false;
+      }
+      
+      // Buscar la compañía completa
+      const selectedCompany = companies.find(company => company.name === data.company);
+      
+      if (!selectedCompany) {
+        toast.error("No se encontró la empresa seleccionada");
+        return false;
+      }
+      
+      // Actualizar formData
+      updateFormData({
+        ...formData,
+        company: data.company,
+        companyId: selectedCompany.id
+      });
+      
+      return true; // Permitir continuar
+    }
+  }));
+
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
@@ -124,25 +179,12 @@ export default function SelectCompany({ formData, updateFormData, onComplete }: 
                 </FormItem>
               )}
             />
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                className="bg-dark-green hover:bg-dark-green/90 text-white"
-                disabled={isSubmitting || isLoading}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Procesando
-                  </>
-                ) : (
-                  "Continuar"
-                )}
-              </Button>
-            </div>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
-}
+  );
+});
+
+SelectCompany.displayName = "SelectCompany";
+export default SelectCompany;
