@@ -5,11 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
 import { CompanyService } from "@/app/api/companies/company-service"
 import { Company } from "@/types/companies"
  
@@ -39,12 +37,10 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
   useEffect(() => {
     const subscription = form.watch((values) => {
       if (onValidationChange) {
-        // Validar cuando cambia el valor
         onValidationChange(!!values.company);
       }
     });
     
-    // También validar inmediatamente con el valor actual
     if (onValidationChange) {
       const currentValue = form.getValues("company");
       onValidationChange(!!currentValue);
@@ -60,18 +56,15 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
     }
   }, [form, onValidationChange]);
   
-  // Exponer método saveData al componente padre
   useImperativeHandle(ref, () => ({
     saveData: () => {
       const data = form.getValues();
       
-      // Validar que se haya seleccionado una compañía
       if (!data.company) {
         toast.error("Por favor selecciona una empresa");
         return false;
       }
       
-      // Buscar la compañía completa
       const selectedCompany = companies.find(company => company.name === data.company);
       
       if (!selectedCompany) {
@@ -79,14 +72,13 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
         return false;
       }
       
-      // Actualizar formData
       updateFormData({
         ...formData,
         company: data.company,
         companyId: selectedCompany.id
       });
       
-      return true; // Permitir continuar
+      return true;
     }
   }));
 
@@ -109,7 +101,6 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsSubmitting(true)
     try {
-      // Buscar el objeto de la compañía completo por su nombre
       const selectedCompany = companies.find(company => company.name === data.company);
       
       if (!selectedCompany) {
@@ -117,14 +108,12 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
         return;
       }
       
-      // Add debugging
       console.log("Selected company:", selectedCompany);
       
-      // Actualizar formData con el objeto completo de la compañía
       const updatedFormData = {
         ...formData,
         company: data.company,
-        companyId: selectedCompany.id // Make sure this is not undefined
+        companyId: selectedCompany.id
       };
       
       console.log("Updated formData:", updatedFormData);
