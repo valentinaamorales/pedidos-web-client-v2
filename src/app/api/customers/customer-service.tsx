@@ -88,12 +88,17 @@ export class CustomerService {
     }
   }
  
-  static async searchCustomers(companyId: string, searchTerm: string): Promise<Customer[]> {
+  static async searchCustomers(
+    companyId: string | number,
+    searchTerm: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<Customer[]> {
     try {
         const accessToken = await getAccessToken();
       
-         if (!accessToken) {
-        throw new Error('No access token available');
+        if (!accessToken) {
+          throw new Error('No access token available');
       }
 
         let url = `/customers?company_id=${companyId}`;

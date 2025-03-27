@@ -124,6 +124,21 @@ const CommandItem = React.forwardRef<
 
 CommandItem.displayName = CommandPrimitive.Item.displayName
 
+const CommandLoading = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "py-6 text-center text-sm",
+      className
+    )}
+    {...props}
+  />
+))
+CommandLoading.displayName = "CommandLoading"
+
 const CommandShortcut = ({
   className,
   ...props
@@ -150,4 +165,5 @@ export {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
+  CommandLoading
 }
