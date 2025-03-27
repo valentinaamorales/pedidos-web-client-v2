@@ -108,12 +108,14 @@ export function CreateOrderStepper() {
 
       // Obtener IDs de direcciones (podrían ser null si son opcionales)
       const shippingAddressId = formData.deliveryAddress?.id && 
-                               formData.deliveryAddress.id !== 'delivery-default' ? 
-                               formData.deliveryAddress.id : null;
+                               formData.deliveryAddress.id !== 'delivery-default' && 
+                               formData.deliveryAddress.id !== 'none' ?
+                               formData.deliveryAddress.id: null
       
       const invoiceAddressId = formData.invoiceAddress?.id && 
-                              formData.invoiceAddress.id !== 'invoice-default' ? 
-                              formData.invoiceAddress.id : null;
+                               formData.invoiceAddress.id !== 'invoice-default' &&
+                               formData.invoiceAddress.id !== 'none' ? 
+                               formData.invoiceAddress.id : null;
 
       // Formatear la fecha en formato YYYY-MM-DD
       const today = new Date();

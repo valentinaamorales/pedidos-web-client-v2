@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
-import { Address } from "@/types/address"
+import { Address } from "@/types/addresses"
 import { AddressService } from "@/app/api/interlocutors/address-service"
 
 // Modificar el esquema para que las direcciones sean opcionales
@@ -57,8 +57,8 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
         ...formData,
         ...data,
         // Guardar objetos completos para uso posterior
-        deliveryAddress: selectedDeliveryAddress || null,
-        invoiceAddress: selectedInvoiceAddress || null
+        deliveryAddress: selectedDeliveryAddress,
+        invoiceAddress: selectedInvoiceAddress
       });
       
       return true; // Siempre permitir continuar ya que las direcciones son opcionales
@@ -155,7 +155,7 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
                         ) : (
                           <>
                             {/* Opción para no seleccionar dirección */}
-                            <SelectItem value="">
+                            <SelectItem value="none">
                               -- Sin dirección de entrega --
                             </SelectItem>
                             {deliveryAddresses.map((address) => (
@@ -195,7 +195,7 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
                         ) : (
                           <>
                             {/* Opción para no seleccionar dirección */}
-                            <SelectItem value="">
+                            <SelectItem value="none">
                               -- Sin dirección de facturación --
                             </SelectItem>
                             {invoiceAddresses.map((address) => (
