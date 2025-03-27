@@ -1,5 +1,5 @@
 import { axiosInstance } from "@/lib/axios";
-import { Address } from "@/types/address";
+import { Address } from "@/types/addresses";
 import { getAccessToken } from '@/app/actions/getAccessToken';
 
 export class AddressService {
@@ -16,7 +16,7 @@ export class AddressService {
       
       const url = `/interlocutors?parent_id=${parentId}&contact_type=${type}`;
       
-      const { data } = await axiosInstance.get<Address[]>(url, {
+      const response = await axiosInstance.get<Address[]>(url, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Cache-Control': 'no-cache',
@@ -25,8 +25,10 @@ export class AddressService {
           return (status >= 200 && status < 300) || status === 404;
         }
       });
+
+      const data = response.data;
       
-      if (response.status === 404 || !response.data || response.data.length === 0) {
+      if (response.status === 404 || data.length === 0) {
         console.log(`No se encontraron direcciones de ${type}`);
         return [];
       }
@@ -49,10 +51,6 @@ export class AddressService {
       });
       
     } catch (error: any) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        return [];
-      }
-
       console.error(`Error fetching ${type} addresses:`, error);
       return [];
       }
