@@ -1,9 +1,12 @@
 import { axiosInstance } from '@/lib/axios';
 import { Customer } from '@/types/customers';
 import { getAccessToken } from '@/app/actions/getAccessToken';
-import axios from 'axios';
+import axios, { CancelTokenSource } from 'axios';
  
 export class CustomerService {
+
+  static currentRequest: CancelTokenSource | null = null;
+
   static async getCustomers(): Promise<Customer[]> {
     try {
       const accessToken = await getAccessToken();
@@ -100,8 +103,15 @@ export class CustomerService {
         if (!accessToken) {
           throw new Error('No access token available');
       }
+      
+      if (CustomerService.currentRequest){
+        CustomerService.currentRequest.cancel('Petición cancelada por nueva búsqueda');
+      }
 
-        let url = `/customers?company_id=${companyId}`;
+        // Crear nuevo token de cancelación para esta petición
+        CustomerService.currentRequest = axios.CancelToken.source();
+
+        let url = `/customers?company_id=${companyId}&offset=${page}&limit=${limit}`;
 
         if (searchTerm && searchTerm.length >= 3) {
             url += `&name=${encodeURIComponent(searchTerm)}`;
@@ -113,20 +123,25 @@ export class CustomerService {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Cache-Control': 'no-cache',
-            }
+            },
+            cancelToken: CustomerService.currentRequest.token
           });
   
         return data;
 
     } catch (error) {
-    if (axios.isAxiosError(error)) {
+      if(axios.isCancel(error)){
+        console.log('Petición cancelada:', error.message);
+        return [];
+      }
+      if (axios.isAxiosError(error)) {
         console.error('Error searching customers:', {
         status: error.response?.status,
         message: error.message,
         data: error.response?.data
         });
+      }
+      throw new Error('Failed to search customers');
+      }
     }
-    throw new Error('Failed to search customers');
-    }
-}
-}
+  }
