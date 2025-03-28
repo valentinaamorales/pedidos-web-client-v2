@@ -123,7 +123,7 @@ export function CreateOrderStepper() {
 
       // Preparar los items del pedido
       const items = formData.products.map(product => ({
-        productId: Number(product.id),
+        productId: Number(product.reference),
         quantity: product.quantity,
         price: product.price,
       }));

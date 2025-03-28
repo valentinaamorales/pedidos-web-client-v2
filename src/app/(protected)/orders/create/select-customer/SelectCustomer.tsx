@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from "react"
 import { z } from "zod"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -44,10 +44,14 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
   const [open, setOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(
     formData.customer && formData.customerId ? 
     { id: formData.customerId, name: formData.customer } : null
   )
+
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -56,6 +60,48 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
       customerId: formData?.customerId?.toString() || ""
     },
   })
+
+
+  // Función para buscar clientes con paginación
+  const searchCustomers = useCallback(async (term: string, pageNum: number = 1, append: boolean = false) => {
+    if (!formData.companyId) {
+      toast.error("No se ha seleccionado una empresa");
+      return;
+    }
+
+    if (pageNum === 1){
+      setIsLoading(true);
+    }else{
+      setIsFetching(true);
+    }
+    
+    setHasSearched(true);
+
+    try {
+      const data = await CustomerService.searchCustomers(
+        formData.companyId, 
+        term,
+        pageNum, 
+        10 // tamaño de página
+      );
+      
+      setHasMore(data.length === 10);
+      
+      if (append) {
+        setCustomers(prev => [...prev, ...data]);
+      } else {
+        setCustomers(data);
+      }
+      
+    } catch (error) {
+      console.error("Error buscando clientes:", error);
+      toast.error("Error al cargar los clientes");
+    } finally {
+      setIsLoading(false);
+      setIsFetching(false);
+    }
+  }, [formData.companyId]);
+
 
   // Exponer el método saveData al componente padre a través de ref
   useImperativeHandle(ref, () => ({
@@ -88,10 +134,12 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     }
   }));
 
+
   // Garantizar que el componente solo se renderice en el cliente
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
 
   // Notificar al padre si el paso es válido cuando cambia el cliente seleccionado
   useEffect(() => {
@@ -100,59 +148,57 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     }
   }, [currentCustomer, formData.customer, formData.customerId, onValidationChange]);
 
-  // Función para buscar clientes con paginación
-  const searchCustomers = async (term: string, pageNum: number = 1, append: boolean = false) => {
-    if (!formData.companyId) {
-      toast.error("No se ha seleccionado una empresa");
-      return;
-    }
 
-    setIsLoading(true);
-    setHasSearched(true);
+  useEffect(() => {
+    if (!hasMore || isLoading || isFetching || searchTerm.length < 3) return;
     
-    try {
-      const data = await CustomerService.searchCustomers(
-        formData.companyId, 
-        term,
-        pageNum, 
-        10 // tamaño de página
-      );
-      
-      setHasMore(data.length === 10);
-      
-      if (append) {
-        setCustomers(prev => [...prev, ...data]);
-      } else {
-        setCustomers(data);
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        handleLoadMore();
       }
-      
-    } catch (error) {
-      console.error("Error buscando clientes:", error);
-      toast.error("Error al cargar los clientes");
-    } finally {
-      setIsLoading(false);
+    }, {
+      root: null, // viewport
+      rootMargin: '0px',
+      threshold: 0.1 // 10% de visibilidad
+    });
+    
+    if (loadMoreTriggerRef.current) {
+      observer.observe(loadMoreTriggerRef.current);
     }
-  };
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, isLoading, isFetching, searchTerm, page]);
+
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setPage(1); // Reiniciar página
+
+    if(searchTimeoutRef.current){
+      clearTimeout(searchTimeoutRef.current);
+    }
     
     if (value.length >= 3) {
-      searchCustomers(value, 1, false); // Nueva búsqueda, reemplazar resultados
-    } else {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchCustomers(value, 1, false); // Nueva búsqueda, reemplazar resultados
+      }, 300);
+    }else {
       setCustomers([]); // Limpiar resultados si el término es muy corto
     }
   };
 
+
   // Cargar más resultados al hacer scroll
   const handleLoadMore = () => {
-    if (!isLoading && hasMore && searchTerm.length >= 3) {
+    if (!isLoading && hasMore && searchTerm.length >= 3 && !isFetching) {
       const nextPage = page + 1;
       setPage(nextPage);
       searchCustomers(searchTerm, nextPage, true); // Cargar más y añadir a los existentes
     }
   };
+
 
   // Manejar selección de cliente
   const handleSelectCustomer = (customer: Customer) => {
@@ -161,6 +207,7 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     form.setValue("customerId", customer.id?.toString() || "");
     setOpen(false); // Cerrar el popover
   };
+
 
   if (!isMounted) {
     return (
@@ -179,6 +226,7 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
       </Card>
     );
   }
+
 
   return (
     <Card className="w-full mx-auto">
@@ -220,7 +268,7 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
                           placeholder="Buscar cliente..." 
                           value={searchTerm}
                           onValueChange={handleSearchChange}
-                          className="h-9"
+                          className="h-10 px-3 py-2 text-base w-full border-none focus:ring-0"
                         />
                         <CommandList>
                           {searchTerm.length > 0 && searchTerm.length < 3 && (
@@ -259,28 +307,21 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
                                   />
                                 </CommandItem>
                               ))}
-                            </CommandGroup>
-                          )}
                           
-                          {hasMore && searchTerm.length >= 3 && !isLoading && (
-                            <div className="p-1">
-                              <Button
-                                variant="ghost"
-                                className="w-full py-2 justify-center"
-                                onClick={handleLoadMore}
-                                disabled={isLoading}
-                                type="button"
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Cargando más...
-                                  </>
-                                ) : (
-                                  "Cargar más resultados"
-                                )}
-                              </Button>
-                            </div>
+                              {hasMore && (
+                                <div
+                                  ref={loadMoreTriggerRef}
+                                  className= "h-8 flex items-center justify-center"
+                                >
+                                  {isFetching && (
+                                    <div className="flex items-center justify-center py-2">
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      <span className="text-sm text-muted-foreground">Cargando más...</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CommandGroup>
                           )}
                         </CommandList>
                       </Command>
