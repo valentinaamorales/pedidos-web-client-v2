@@ -66,8 +66,6 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
         return false;
       }
       
-      console.log("Guardando productos:", products.length, products);
-      
       const updatedData = { 
         products: [...products],
         observations, 
@@ -76,7 +74,7 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
       
       updateFormData(updatedData);
       
-      return true;
+      return updatedData;
     }
   }));
 
