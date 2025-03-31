@@ -81,7 +81,6 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
   // Añade un efecto para cargar la lista de precios cuando se monte el componente
   useEffect(() => {
     if (!formData?.companyId || !formData?.customerId) {
-      console.log("No se puede cargar la lista de precios sin companyId y customerId");
       return;
     }
 
@@ -93,7 +92,6 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
           customerId,
           companyId
         );
-        console.log("Lista de precios cargada:", data);
         setPriceList(data);
       } catch (error) {
         console.error("Error al cargar la lista de precios:", error);
@@ -150,7 +148,7 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
     const existingProduct = products.find((p) => p.id === product.id);
 
     if (existingProduct) {
-      toast("Producto ya agregado", { description: "Este producto ya está en tu lista." });
+      toast.warning("Producto ya agregado", { description: "Este producto ya está en tu lista." });
       return;
     }
 
@@ -158,12 +156,12 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
     setProducts([...products, newProduct]);
     setIsDialogOpen(false);
 
-    toast("Producto agregado", { description: `${product.name} ha sido agregado a tu pedido.` });
+    toast.success("Producto agregado", { description: `${product.name} ha sido agregado a tu pedido.` });
   }
 
   const removeProduct = (id: number) => {
     setProducts(products.filter((product) => product.id !== id));
-    toast("Producto eliminado", { description: "El producto ha sido eliminado de tu pedido." });
+    toast.success("Producto eliminado", { description: "El producto ha sido eliminado de tu pedido." });
   }
 
   const updateQuantity = (id: number, quantity: number) => {
@@ -171,20 +169,16 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
     setProducts(products.map((product) => (product.id === id ? { ...product, quantity } : product)));
   }
 
-  const handleSave = () => {
-    console.log("Guardando productos:", products.length, products);
-    
+  const handleSave = () => {    
     const updatedData = { 
       products: [...products], // Crear una nueva copia del array
       observations, 
       priceListId: priceList?.id 
     };
-    
-    console.log("Datos a guardar:", updatedData);
-    
+        
     updateFormData(updatedData);
     
-    toast("Productos guardados", { 
+    toast.success("Productos guardados", { 
       description: `Se han guardado ${products.length} productos en tu pedido.` 
     });
     

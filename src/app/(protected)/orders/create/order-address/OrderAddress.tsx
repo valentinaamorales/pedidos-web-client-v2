@@ -85,7 +85,6 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
             form.setValue("merchandiseRecipient", formData.deliveryAddress.id);
           }
         } catch (deliveryError) {
-          console.log("Error cargando direcciones de entrega:", deliveryError);
           setDeliveryAddresses([]);
         }
         
@@ -97,7 +96,6 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
             form.setValue("billingRecipient", formData.invoiceAddress.id);
           }
         } catch (invoiceError) {
-          console.log("Error cargando direcciones de facturación:", invoiceError);
           setInvoiceAddresses([]);
         }
         

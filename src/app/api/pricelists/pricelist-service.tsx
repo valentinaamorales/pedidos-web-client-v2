@@ -21,9 +21,7 @@ export class PriceListService {
       }
 
       const url = `/pricelists?customer_id=${customerId}&company_id=${companyId}`;
-      
-      console.log('Fetching price list:', url);
-      
+            
       const { data } = await axiosInstance.get<PriceList[]>(url, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,

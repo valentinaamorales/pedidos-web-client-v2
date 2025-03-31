@@ -13,7 +13,6 @@ export async function getUserRole(): Promise<UserRole> {
   const session = await auth0.getSession()
 
   if (!session?.tokenSet?.accessToken) {
-    console.log('No access token found')
     return 'unauthorized'
   }
 

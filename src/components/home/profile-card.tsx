@@ -23,7 +23,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-500">Correo Electrónico</h3>
-            <p className="mt-1 text-lg font-medium">{profile.email}</p>
+            <p className="mt-1 text-lg font-medium break-all">{profile.email}</p>
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-500">Código ERP</h3>
