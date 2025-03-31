@@ -94,7 +94,7 @@ export class CustomerService {
   static async searchCustomers(
     companyId: string | number,
     searchTerm: string,
-    page: number = 1,
+    page: number = 0,
     limit: number = 10
   ): Promise<Customer[]> {
     try {
@@ -108,10 +108,12 @@ export class CustomerService {
         CustomerService.currentRequest.cancel('Petición cancelada por nueva búsqueda');
       }
 
+      const offset = page * limit;
+
         // Crear nuevo token de cancelación para esta petición
         CustomerService.currentRequest = axios.CancelToken.source();
 
-        let url = `/customers?company_id=${companyId}&offset=${page}&limit=${limit}`;
+        let url = `/customers?company_id=${companyId}&offset=${offset}&limit=${limit}`;
 
         if (searchTerm && searchTerm.length >= 3) {
             url += `&name=${encodeURIComponent(searchTerm)}`;
