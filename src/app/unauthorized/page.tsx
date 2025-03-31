@@ -8,7 +8,7 @@ export default function UnauthorizedPage() {
           No tienes permiso para acceder a esta página.
         </p>
         <Link
-          href="/home" 
+          href="/" 
           className="mt-4 text-white bg-primary px-4 py-2 rounded-md"
         >
           Volver al inicio

@@ -25,9 +25,7 @@ export class ProductService {
         // Si hay un término pero no alcanza los 3 caracteres, no buscar
         return [];
       }
-      
-      console.log('Fetching products from:', url);
-      
+            
       const { data } = await axiosInstance.get<Product[]>(url, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,

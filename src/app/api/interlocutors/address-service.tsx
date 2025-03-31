@@ -29,7 +29,6 @@ export class AddressService {
       const data = response.data;
       
       if (response.status === 404 || data.length === 0) {
-        console.log(`No se encontraron direcciones de ${type}`);
         return [];
       }
       

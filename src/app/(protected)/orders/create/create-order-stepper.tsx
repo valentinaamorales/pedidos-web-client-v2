@@ -135,7 +135,8 @@ export function CreateOrderStepper() {
                               data.invoiceAddress.id : null;
 
       const today = new Date();
-      const dateOrder = today.toISOString().replace('T', ' ').split('.')[0];
+      const todayCol = new Date(today.getTime() -5 * 60 * 60 * 1000);
+      const dateOrder = todayCol.toISOString().replace('T', ' ').split('.')[0];
 
       const items = data.products.map(product => ({
         productId: Number(product.reference),

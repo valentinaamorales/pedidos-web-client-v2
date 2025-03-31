@@ -108,7 +108,6 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
         return;
       }
       
-      console.log("Selected company:", selectedCompany);
       
       const updatedFormData = {
         ...formData,
@@ -116,7 +115,6 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
         companyId: selectedCompany.id
       };
       
-      console.log("Updated formData:", updatedFormData);
       updateFormData(updatedFormData);
       
       toast.success("Empresa seleccionada correctamente");

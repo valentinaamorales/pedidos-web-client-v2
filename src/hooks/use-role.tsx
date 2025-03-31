@@ -12,7 +12,6 @@ export function useRole() {
       try {
         const userRole = await getUserRole()
         setRole(userRole)
-        console.log('Role:', userRole)
       } catch (error) {
         console.error('Error fetching role:', error)
       } finally {

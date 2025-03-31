@@ -133,7 +133,6 @@ export class CustomerService {
 
     } catch (error) {
       if(axios.isCancel(error)){
-        console.log('Petición cancelada:', error.message);
         return [];
       }
       if (axios.isAxiosError(error)) {
