@@ -17,7 +17,7 @@ const SelectProducts = dynamic(() => import("./select-products/SelectProducts"))
 
 // Tipos para las referencias a los componentes
 interface ComponentWithSaveMethod {
-  saveData?: () => boolean;
+  saveData?: () => boolean | Record<string, any>;
 }
 
 const steps = [
@@ -69,14 +69,25 @@ export function CreateOrderStepper() {
     });
   }
 
+
   // Función para guardar los datos del paso actual y avanzar
-  const handleStepComplete = async () => {
+  const handleStepComplete = () => {
     // Si el componente actual expone un método saveData, llamarlo
     let canContinue = true;
+    let updatedData = null;
     
     // Intentar guardar datos del componente actual si expone el método
     if (componentRef.current && typeof componentRef.current.saveData === 'function') {
-      canContinue = componentRef.current.saveData();
+      const result = componentRef.current.saveData();
+
+      if (result === false){
+        canContinue = false;
+      } else if (typeof result === 'object' && result !== null) {
+        updatedData = result;
+        canContinue = true;
+      } else {
+        canContinue = Boolean(result);
+      }
     }
     
     // Solo avanzar si se guardaron los datos correctamente o no hay método de guardado
@@ -84,63 +95,65 @@ export function CreateOrderStepper() {
       if (currentStep < steps.length - 1) {
         setCurrentStep(currentStep + 1);
       } else {
-        handleSubmit();
+        if (updatedData !== null) {
+          const mergedData = {...formData, ...updatedData };
+          handleSubmitWithData(mergedData);
+        } else {
+          handleSubmit();
+        }
       }
     }
   }
+
 
   const handleValidationChange = (isValid: boolean) => {
     setIsStepValid(isValid);
   }
 
-  const handleSubmit = async () => {
+
+  const handleSubmitWithData = async (data: FormData) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      if (!formData.companyId || !formData.customerId) {
+      if (!data.companyId || !data.customerId) {
         throw new Error("Selecciona una empresa y un cliente para continuar");
       }
-
-      if (!formData.products || formData.products.length === 0) {
+      if (!data.products || data.products.length === 0) {
         throw new Error("Agrega al menos un producto para continuar");
       }
 
-      // Obtener IDs de direcciones (podrían ser null si son opcionales)
-      const shippingAddressId = formData.deliveryAddress?.id && 
-                               formData.deliveryAddress.id !== 'delivery-default' && 
-                               formData.deliveryAddress.id !== 'none' ?
-                               formData.deliveryAddress.id: null
+      // Obtener IDs de direcciones desde los datos proporcionados
+      const shippingAddressId = data.deliveryAddress?.id && 
+                              data.deliveryAddress.id !== 'delivery-default' && 
+                              data.deliveryAddress.id !== 'none' ? 
+                              data.deliveryAddress.id : null;
       
-      const invoiceAddressId = formData.invoiceAddress?.id && 
-                               formData.invoiceAddress.id !== 'invoice-default' &&
-                               formData.invoiceAddress.id !== 'none' ? 
-                               formData.invoiceAddress.id : null;
+      const invoiceAddressId = data.invoiceAddress?.id && 
+                              data.invoiceAddress.id !== 'invoice-default' && 
+                              data.invoiceAddress.id !== 'none' ? 
+                              data.invoiceAddress.id : null;
 
-      // Formatear la fecha en formato YYYY-MM-DD
       const today = new Date();
       const dateOrder = today.toISOString().replace('T', ' ').split('.')[0];
 
-      // Preparar los items del pedido
-      const items = formData.products.map(product => ({
+      const items = data.products.map(product => ({
         productId: Number(product.reference),
         quantity: product.quantity,
         price: product.price,
       }));
 
-      // Construir el objeto de pedido
       const orderData = {
-        companyId: Number(formData.companyId),
-        customerId: Number(formData.customerId),
+        companyId: Number(data.companyId),
+        customerId: Number(data.customerId),
         dateOrder,
-        priceListId: formData.priceListId || null,
-        customerShippingAdressId: shippingAddressId ? Number(shippingAddressId) : null,
-        customerInvoiceAdressId: invoiceAddressId ? Number(invoiceAddressId) : null,
+        // Incluir campos opcionales solo si tienen valor
+        ...(data.priceListId ? { priceListId: data.priceListId } : {}),
+        ...(shippingAddressId ? { customerShippingAdressId: Number(shippingAddressId) } : {}),
+        ...(invoiceAddressId ? { customerInvoiceAdressId: Number(invoiceAddressId) } : {}),
         items,
       };
 
-      console.log("Enviando pedido:", orderData);
-      
       const response = await OrderService.createOrder(orderData);
       
       toast.success("¡Pedido creado exitosamente!", {
@@ -151,17 +164,21 @@ export function CreateOrderStepper() {
       setTimeout(() => {
         router.push('/orders/');
       }, 1500);
-      
+
     } catch (error: any) {
       console.error("Error creando pedido:", error);
       toast.error("Error al crear el pedido", {
         description: error.message || "Ha ocurrido un error al enviar tu pedido. Por favor intenta nuevamente."
-      });
+    });
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
+  const handleSubmit = () => {
+    handleSubmitWithData(FormData);
+  };
+ 
   const CurrentStepComponent = steps[currentStep].component;
 
   return (
