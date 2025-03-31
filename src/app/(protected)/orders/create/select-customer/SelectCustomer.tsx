@@ -42,7 +42,7 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
   const [searchTerm, setSearchTerm] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
   const [open, setOpen] = useState(false)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [isFetching, setIsFetching] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -63,13 +63,13 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
 
 
   // Función para buscar clientes con paginación
-  const searchCustomers = useCallback(async (term: string, pageNum: number = 1, append: boolean = false) => {
+  const searchCustomers = useCallback(async (term: string, pageNum: number = 0, append: boolean = false) => {
     if (!formData.companyId) {
       toast.error("No se ha seleccionado una empresa");
       return;
     }
 
-    if (pageNum === 1){
+    if (pageNum === 0){
       setIsLoading(true);
     }else{
       setIsFetching(true);
@@ -174,7 +174,7 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setPage(1); // Reiniciar página
+    setPage(0); // Reiniciar página
 
     if(searchTimeoutRef.current){
       clearTimeout(searchTimeoutRef.current);
@@ -182,7 +182,7 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     
     if (value.length >= 3) {
       searchTimeoutRef.current = setTimeout(() => {
-        searchCustomers(value, 1, false); // Nueva búsqueda, reemplazar resultados
+        searchCustomers(value, 0, false); // Nueva búsqueda, reemplazar resultados
       }, 300);
     }else {
       setCustomers([]); // Limpiar resultados si el término es muy corto
