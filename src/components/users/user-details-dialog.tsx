@@ -5,11 +5,14 @@ import {
   DialogContent,
   DialogTrigger,
   DialogFooter,
+  DialogTitle,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Link from "next/link";
 import UserDetailsCard from "@/components/users/user-details-card";
 // import OrderProductsCard from "@/components/MyOrders/OrderProductsCard";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface UserDetailsDialogProps {
   id: string;
@@ -28,6 +31,9 @@ export function UserDetailsDialog({ id }: UserDetailsDialogProps) {
         </Button>
       </DialogTrigger>
       <DialogContent>
+        <VisuallyHidden>
+          <DialogTitle>Detalles del usuario</DialogTitle>
+        </VisuallyHidden>
         <Tabs defaultValue="userDetails" className="w-full mx-auto mt-4">
           <TabsContent value="userDetails" className="mt-2">
             <UserDetailsCard id={id} />

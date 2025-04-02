@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios';
-import { UserProfile, UsersListDto} from '@/types/users';
+import { UserProfile, UsersListDto, UserQueryParams} from '@/types/users';
 import { getAccessToken } from '@/app/actions/getAccessToken';
 import axios from 'axios';
 
@@ -36,35 +36,36 @@ export class UserService {
     }
   }
 
-  static async getUsers(): Promise<UsersListDto> {
+  static async getUsers(params: UserQueryParams = {}): Promise<UsersListDto[]> {
     try {
       const accessToken = await getAccessToken();
       
       if (!accessToken) {
         throw new Error('No access token available');
       }
-
-      const { data } = await axiosInstance.get<UsersListDto>('/users/all', {
+      
+      // Construir parámetros de consulta para paginación
+      const queryParams = new URLSearchParams();
+      if (params.limit !== undefined) {
+        queryParams.append('limit', params.limit.toString());
+      }
+      if (params.offset !== undefined) {
+        queryParams.append('offset', params.offset.toString());
+      }
+      
+      const queryString = queryParams.toString();
+      const url = `/users${queryString ? `?${queryString}` : ''}`;
+      
+      const { data } = await axiosInstance.get(url, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache',
+          'Authorization': `Bearer ${accessToken}`
         }
       });
-
+      
       return data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error('Error fetching users:', {
-          status: error.response?.status,
-          message: error.message,
-          data: error.response?.data
-        });
-
-        if (error.response?.status === 404) {
-          throw new Error('Users not found');
-        }
-      }
-      throw new Error('Failed to fetch users');
+      console.error('Error fetching users:', error);
+      throw error;
     }
   }
 

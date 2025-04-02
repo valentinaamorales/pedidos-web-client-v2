@@ -14,3 +14,8 @@ export interface UsersListDto {
     user_type: string,
     is_active: boolean
 }
+
+interface UserQueryParams {
+    limit?: number;
+    offset?: number;
+  }
