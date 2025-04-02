@@ -22,14 +22,12 @@ export function UserDetailsDialog({ id }: UserDetailsDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-8 w-8 rounded-full hover:bg-primary hover:text-secondary"
-        >
-          <span className="sr-only">Ver detalles</span>
-          <MoreHorizontal />
-        </Button>
+        <div className="h-8 w-8 p-0 flex items-center justify-center rounded-full hover:bg-primary hover:text-secondary cursor-pointer">
+          <span className="sr-only">Ver detalles del usuario {id}</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </div>
       </DialogTrigger>
+      
       <DialogContent>
         <VisuallyHidden>
           <DialogTitle>Detalles del usuario</DialogTitle>

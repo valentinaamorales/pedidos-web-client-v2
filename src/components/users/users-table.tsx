@@ -42,11 +42,7 @@ const columns: ColumnDef<UsersListDto>[] = [
       header: "Acciones",
       cell: ({ row }) => {
         const user = row.original;
-        return (
-          <Button variant="ghost" className="h-8 w-8 p-0" >
-            <UserDetailsDialog id={user.id} />
-          </Button>
-        );
+        return <UserDetailsDialog id={user.id} />;
       },
     },
   ];
