@@ -5,9 +5,13 @@ import {
   DialogContent,
   DialogTrigger,
   DialogFooter,
+  DialogTitle,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Link from "next/link";
+import { OrderDetailsCard } from "./order-details-card";
+import { OrderProductsCard } from "./order-products-card";
 
 interface OrderDetailsDialogProps {
   orderId: string | number;
@@ -26,6 +30,9 @@ export function OrderDetailsDialog({ orderId }: OrderDetailsDialogProps) {
         </Button>
       </DialogTrigger>
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Detalles del Pedido #{orderId}</DialogTitle>
+        </DialogHeader>
         <Tabs defaultValue="orderDetails" className="w-full mx-auto mt-4">
           <TabsList className="flex flex-col sm:flex-row w-full gap-2 p-2 h-auto bg-white">
             <TabsTrigger
@@ -42,12 +49,10 @@ export function OrderDetailsDialog({ orderId }: OrderDetailsDialogProps) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="orderDetails" className="mt-2">
-            {/* <OrderDetailsCard /> */}
-            <h1>Detalles del pedido {orderId}</h1>
+            <OrderDetailsCard orderId={orderId} />
           </TabsContent>
           <TabsContent value="orderProducts" className="mt-2">
-            {/* <OrderProductsCard /> */}
-            <h1>Productos del pedido {orderId}</h1>
+            <OrderProductsCard orderId={orderId} />
           </TabsContent>
         </Tabs>
         <DialogFooter className="sm:justify-end">

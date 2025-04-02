@@ -49,13 +49,6 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
     return () => subscription.unsubscribe();
   }, [form, onValidationChange]);
 
-  useEffect(() => {
-    if (onValidationChange) {
-      const currentValue = form.getValues("company");
-      onValidationChange(!!currentValue);
-    }
-  }, [form, onValidationChange]);
-  
   useImperativeHandle(ref, () => ({
     saveData: () => {
       const data = form.getValues();
