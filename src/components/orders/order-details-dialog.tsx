@@ -9,10 +9,11 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Link from "next/link";
 
-// import OrderDetailsCard from "@/components/MyOrders/OrderDetailsCard";
-// import OrderProductsCard from "@/components/MyOrders/OrderProductsCard";
+interface OrderDetailsDialogProps {
+  orderId: string | number;
+}
 
-export function OrderDetailsDialog() {
+export function OrderDetailsDialog({ orderId }: OrderDetailsDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -20,7 +21,7 @@ export function OrderDetailsDialog() {
           variant="ghost"
           className="h-8 w-8 rounded-full hover:bg-primary hover:text-secondary"
         >
-          <span className="sr-only">Ver detalles</span>
+          <span className="sr-only">Ver detalles del pedido {orderId}</span>
           <MoreHorizontal />
         </Button>
       </DialogTrigger>
@@ -31,7 +32,7 @@ export function OrderDetailsDialog() {
               value="orderDetails"
               className="flex-1 px-4 text-sm sm:text-base w-full bg-dark-green text-white rounded-md data-[state=active]:bg-dark-green/90 data-[state=active]:text-secondary  hover:text-secondary transition-colors"
             >
-              Pedido
+              Pedido #{orderId}
             </TabsTrigger>
             <TabsTrigger
               value="orderProducts"
@@ -42,11 +43,11 @@ export function OrderDetailsDialog() {
           </TabsList>
           <TabsContent value="orderDetails" className="mt-2">
             {/* <OrderDetailsCard /> */}
-            <h1>details</h1>
+            <h1>Detalles del pedido {orderId}</h1>
           </TabsContent>
           <TabsContent value="orderProducts" className="mt-2">
             {/* <OrderProductsCard /> */}
-            <h1>products</h1>
+            <h1>Productos del pedido {orderId}</h1>
           </TabsContent>
         </Tabs>
         <DialogFooter className="sm:justify-end">
