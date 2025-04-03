@@ -56,7 +56,7 @@ export function OrderDetailsDialog({ orderId }: OrderDetailsDialogProps) {
           </TabsContent>
         </Tabs>
         <DialogFooter className="sm:justify-end">
-          <Link href="/orders/create">
+          <Link href={`/orders/create?copyFromId=${orderId}`}>
             <Button className="bg-primary hover:bg-primary hover:text-secondary">
               Pedir de nuevo
             </Button>

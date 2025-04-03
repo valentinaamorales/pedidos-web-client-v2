@@ -15,6 +15,7 @@ const FormSchema = z.object({
   company: z.string({
     required_error: "Por favor selecciona una empresa.",
   }),
+  companyId: z.string().optional(),
 })
  
 interface SelectCompanyProps {
@@ -28,58 +29,80 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  
+  const [currentCompany, setCurrentCompany] = useState<Company | null>(
+    formData.company && formData.companyId ? 
+    { id: formData.companyId, name: formData.company } : null
+  )
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: formData || {},
+    defaultValues: {
+      company: formData?.company || "",
+      companyId: formData?.companyId?.toString() || ""
+    },
   })
 
   useEffect(() => {
-    const subscription = form.watch((values) => {
-      if (onValidationChange) {
-        onValidationChange(!!values.company);
-      }
-    });
-    
-    if (onValidationChange) {
-      const currentValue = form.getValues("company");
-      onValidationChange(!!currentValue);
-    }
-    
-    return () => subscription.unsubscribe();
-  }, [form, onValidationChange]);
-
-  useImperativeHandle(ref, () => ({
-    saveData: () => {
-      const data = form.getValues();
-      
-      if (!data.company) {
-        toast.error("Por favor selecciona una empresa");
-        return false;
-      }
-      
-      const selectedCompany = companies.find(company => company.name === data.company);
-      
-      if (!selectedCompany) {
-        toast.error("No se encontró la empresa seleccionada");
-        return false;
-      }
-      
-      updateFormData({
-        ...formData,
-        company: data.company,
-        companyId: selectedCompany.id
+    if (formData?.companyId && formData?.company) {
+      // Establecer el estado interno
+      setCurrentCompany({
+        id: formData.companyId,
+        name: formData.company
       });
       
-      return true;
+      form.setValue("company", formData.company);
+      form.setValue("companyId", formData.companyId.toString());
+    }
+  }, [formData, form]);
+
+  // Efecto para la validación
+  useEffect(() => {
+    if (onValidationChange) {
+      // Usar el mismo enfoque que SelectCustomer
+      onValidationChange(!!currentCompany || !!(formData.company && formData.customerId));
+    }
+  }, [currentCompany, formData, onValidationChange]);
+
+  // Exponer método saveData mediante ref
+  useImperativeHandle(ref, () => ({
+    saveData: () => {
+      // Si hay un currentCompany establecido, usarlo
+      if (currentCompany) {
+        updateFormData({
+          ...formData,
+          company: currentCompany.name,
+          companyId: currentCompany.id
+        });
+        return true;
+      } else if (formData.company && formData.companyId) {
+        // Si ya hay datos de empresa en formData, permitir continuar
+        return true;
+      }
+      
+      toast.error("Por favor selecciona una empresa");
+      return false;
     }
   }));
 
+  // Cargar la lista de empresas
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
         const data = await CompanyService.getCompanies();
         setCompanies(data);
+        
+        // Si tenemos companyId pero no currentCompany, intentar establecerlo
+        if (formData?.companyId && !currentCompany) {
+          const matchingCompany = data.find(c => 
+            c.id.toString() === formData.companyId.toString()
+          );
+          
+          if (matchingCompany) {
+            setCurrentCompany(matchingCompany);
+            form.setValue("company", matchingCompany.name);
+            form.setValue("companyId", matchingCompany.id.toString());
+          }
+        }
       } catch (error) {
         toast.error("Error al cargar las empresas");
         console.error(error);
@@ -91,24 +114,45 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
     fetchCompanies();
   }, []);
  
+  // Función para manejar la selección de empresa
+  const handleCompanySelect = (companyName: string) => {
+    const selectedCompany = companies.find(company => company.name === companyName);
+    
+    if (selectedCompany) {
+      // Actualizar el estado interno
+      setCurrentCompany(selectedCompany);
+      
+      // Actualizar AMBOS campos del formulario
+      form.setValue("company", selectedCompany.name);
+      form.setValue("companyId", selectedCompany.id.toString());
+    }
+  };
+ 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsSubmitting(true)
     try {
-      const selectedCompany = companies.find(company => company.name === data.company);
-      
-      if (!selectedCompany) {
-        toast.error("No se encontró la empresa seleccionada");
-        return;
+      // Si tenemos un currentCompany, usarlo directamente
+      if (currentCompany) {
+        updateFormData({
+          ...formData,
+          company: currentCompany.name,
+          companyId: currentCompany.id
+        });
+      } else {
+        // Buscar la empresa seleccionada por nombre
+        const selectedCompany = companies.find(company => company.name === data.company);
+        
+        if (!selectedCompany) {
+          toast.error("No se encontró la empresa seleccionada");
+          return;
+        }
+        
+        updateFormData({
+          ...formData,
+          company: data.company,
+          companyId: selectedCompany.id
+        });
       }
-      
-      
-      const updatedFormData = {
-        ...formData,
-        company: data.company,
-        companyId: selectedCompany.id
-      };
-      
-      updateFormData(updatedFormData);
       
       toast.success("Empresa seleccionada correctamente");
       onComplete();
@@ -137,7 +181,13 @@ const SelectCompany = forwardRef(({ formData, updateFormData, onComplete, onVali
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Empresa</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleCompanySelect(value);
+                    }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccionar empresa"} />

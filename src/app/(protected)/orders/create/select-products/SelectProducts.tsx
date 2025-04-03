@@ -56,6 +56,19 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
       onValidationChange(products.length > 0);
     }
   }, [products, onValidationChange]);
+
+  useEffect(() => {
+    // Si tenemos productos precargados, establecerlos
+    if (formData?.products && formData.products.length > 0) {
+      console.log("Estableciendo productos precargados:", formData.products);
+      setProducts(formData.products);
+      
+      // Si hay observaciones, establecerlas
+      if (formData.observations) {
+        setObservations(formData.observations);
+      }
+    }
+  }, []);
   
   // Exponer método saveData al padre
   useImperativeHandle(ref, () => ({

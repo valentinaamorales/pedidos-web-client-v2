@@ -32,4 +32,32 @@ export class CompanyService {
       throw new Error('Failed to fetch companies');
     }
   }
+
+  static async getCompanyById(id: number): Promise<Company> {
+    try {
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        throw new Error ('No acess token available');
+      }
+
+      const { data } = await axiosInstance.get<Company>(`/companies?ids=${id}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache',
+        }
+      });
+
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Error fetching customer:', {
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data
+        });
+      }
+      throw new Error('Failed to fetch customer');
+    }
+  }
 }

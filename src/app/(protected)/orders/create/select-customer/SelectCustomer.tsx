@@ -61,6 +61,19 @@ const SelectCustomer = forwardRef(({ formData, updateFormData, onComplete, onVal
     },
   })
 
+  useEffect(() => {
+    if (formData?.customerId && formData?.customer) {
+      // Establecer el cliente actual
+      setCurrentCustomer({
+        id: formData.customerId,
+        name: formData.customer
+      });
+      
+      // Establecer los valores en el formulario
+      form.setValue("customer", formData.customer);
+      form.setValue("customerId", formData.customerId.toString());
+    }
+  }, [formData, onComplete, form]);
 
   // Función para buscar clientes con paginación
   const searchCustomers = useCallback(async (term: string, pageNum: number = 0, append: boolean = false) => {
