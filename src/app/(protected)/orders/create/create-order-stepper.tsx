@@ -183,7 +183,7 @@ export function CreateOrderStepper() {
   };
 
   const handleSubmit = () => {
-    handleSubmitWithData(FormData);
+    handleSubmitWithData(formData);
   };
 
   // Efecto para cargar datos del pedido original si existe copyFromId
@@ -229,7 +229,7 @@ export function CreateOrderStepper() {
               id: item.productId,
               name: item.productName,
               quantity: item.quantity,
-              reference: item.productId,
+              reference: String(item.productId),
               price: item.priceUnit || 0,
               uom_id: ["uom", ""]
             })),
@@ -239,8 +239,7 @@ export function CreateOrderStepper() {
           setFormData(preparedData);
 
           setTimeout(() => {
-            // Ir directamente al último paso para revisar/confirmar
-            setCurrentStep(steps.length - 1);
+            setCurrentStep(steps.length - 2);
             setIsLoading(false);
             
             toast.success("Datos del pedido cargados correctamente", {
