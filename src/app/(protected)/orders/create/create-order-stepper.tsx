@@ -9,6 +9,8 @@ import { Product } from "@/types/products"
 import { useRouter, useSearchParams } from "next/navigation"
 import { OrderService } from "@/app/api/order/order-service"
 import { CompanyService } from "@/app/api/companies/company-service"
+import { useRole } from "@/hooks/use-role"
+import { useCustomerData } from "@/hooks/customer-data"
 
 // Referencias a los componentes
 const SelectCompany = dynamic(() => import("./select-company/SelectCompany"))
@@ -24,6 +26,11 @@ interface ComponentWithSaveMethod {
 const steps = [
   { id: "company", title: "Seleccionar Empresa", component: SelectCompany },
   { id: "customer", title: "Seleccionar Cliente", component: SelectCustomer },
+  { id: "order", title: "Información del Pedido", component: OrderAddress },
+  { id: "products", title: "Agregar Productos", component: SelectProducts },
+]
+
+const customerSteps = [
   { id: "order", title: "Información del Pedido", component: OrderAddress },
   { id: "products", title: "Agregar Productos", component: SelectProducts },
 ]
@@ -46,10 +53,14 @@ export function CreateOrderStepper() {
   const searchParams = useSearchParams()
   const copyFromId  = searchParams.get('copyFromId'); // Obtener el ID del pedido original si existe
 
+  const { role, loading: roleLoading } = useRole()
+  const isCustomer = role === 'customer'
+  const { customerData, isLoading: customerLoading } = useCustomerData()
+
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isStepValid, setIsStepValid] = useState(true) // Por defecto true para permitir avanzar inicialmente
-  const [isLoading, setIsLoading] = useState(!!copyFromId);
+  const [isLoading, setIsLoading] = useState(!!copyFromId || roleLoading || (isCustomer && customerLoading));
 
   // Referencia para acceder a métodos de componentes hijos
   const componentRef = useRef<ComponentWithSaveMethod>(null)
@@ -61,6 +72,8 @@ export function CreateOrderStepper() {
     products: [],
     observations: "",
   })
+
+  const activeSteps = isCustomer ? customerSteps : steps
 
   const prevStep = () => {
     if (currentStep > 0) {
@@ -186,6 +199,19 @@ export function CreateOrderStepper() {
     handleSubmitWithData(formData);
   };
 
+
+  useEffect(() => {
+    if (isCustomer && customerData && !isLoading && !copyFromId) {
+      updateFormData({
+        company: customerData.name,
+        companyId: customerData.company,
+        customer: customerData.name,
+        customerId: customerData.id
+      });
+    }
+  }, [isCustomer, customerData, isLoading, copyFromId]);
+
+
   // Efecto para cargar datos del pedido original si existe copyFromId
   useEffect(() => {
     if (copyFromId) {
@@ -239,7 +265,7 @@ export function CreateOrderStepper() {
           setFormData(preparedData);
 
           setTimeout(() => {
-            setCurrentStep(steps.length - 2);
+            setCurrentStep(isCustomer ? customerSteps.length - 2 : activeSteps.length - 2);
             setIsLoading(false);
             
             toast.success("Datos del pedido cargados correctamente", {
@@ -258,7 +284,7 @@ export function CreateOrderStepper() {
     }
   }, [copyFromId]);
  
-  const CurrentStepComponent = steps[currentStep].component;
+  const CurrentStepComponent = activeSteps[currentStep].component;
 
   return (
     <div className="w-full max-w-[900px] mx-auto">
@@ -272,7 +298,7 @@ export function CreateOrderStepper() {
           {/* Progress Indicator */}
           <div className="mb-8">
             <div className="flex justify-between items-center">
-              {steps.map((step, index) => (
+              {activeSteps.map((step, index) => (
                 <div key={step.id} className="flex flex-col items-center flex-1">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm sm:text-base mb-2
@@ -325,7 +351,7 @@ export function CreateOrderStepper() {
               <div></div> // Espacio vacío para mantener alineación
             )}
             
-            {currentStep < steps.length - 1 ? (
+            {currentStep < activeSteps.length - 1 ? (
               <Button 
                 className="bg-dark-green hover:bg-dark-green/90 text-white"
                 onClick={handleStepComplete}

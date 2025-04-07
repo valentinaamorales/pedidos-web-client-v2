@@ -8,6 +8,20 @@ export interface UserProfile {
     is_active: boolean
 }
 
+export interface CustomerProfile {
+    id: number;
+    name: string;
+    active: boolean;
+    city?: [number, string];
+    state?: [number, string];
+    country?: [number, string];
+    vat?: string;
+    email?: string;
+    isCompany: boolean;
+    listPrice?: [number, string];
+    company: number;
+}
+
 export interface UsersListDto {
     id: string;
     full_name: string,
@@ -19,3 +33,5 @@ interface UserQueryParams {
     limit?: number;
     offset?: number;
   }
+
+export type UserRole = 'admin' | 'employee' | 'customer' | 'unauthorized';

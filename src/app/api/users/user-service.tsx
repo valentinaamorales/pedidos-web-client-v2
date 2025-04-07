@@ -146,4 +146,43 @@ export class UserService {
       throw new Error('Failed to update user profile');
     }
   }
+
+  static async getCustomerProfile(): Promise<CustomerProfile | null> {
+    try {
+      const userProfile = await this.getProfile();
+
+      if (!userProfile || !userProfile.code_erp) {
+        return null;
+      }
+
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        throw new Error('No access token available');
+      }
+
+      const { data } = await axiosInstance.get<CustomerProfile>(
+        `/customers/${userProfile.code_erp}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache',            
+          }
+        }
+      );
+
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async isCustomer(): Promise<boolean> {
+    try {
+      const userProfile = await this.getProfile();
+      return userProfile?.user_type === 'customer';
+    } catch (error) {
+      return false;
+    }
+  }
 }

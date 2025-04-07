@@ -38,7 +38,25 @@ export async function middleware(request: NextRequest) {
     if (!allowedRoles?.includes(userRole)) {
       return NextResponse.redirect(`${origin}/unauthorized`);
     }
+
+    const headers = new Headers(request.headers);
+    headers.set('x-user-role', userRole);
+
+    return NextResponse.next({
+      request: {
+        headers
+      }
+    });
   }
 
   return authRes;
 }
+
+export const config = {
+  matcher: [
+    '/orders/:path*',
+    '/users/:path*',
+    '/auth/:path*',
+    '/profile/:path*'
+  ]
+};
