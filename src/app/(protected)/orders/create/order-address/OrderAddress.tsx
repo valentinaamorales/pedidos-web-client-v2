@@ -25,9 +25,10 @@ interface OrderAddressProps {
   updateFormData: (data: Record<string, any>) => void;
   onComplete?: () => void;
   onValidationChange?: (isValid: boolean) => void;
+  isCustomerView?: boolean;
 }
 
-const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValidationChange }: OrderAddressProps, ref) => {
+const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValidationChange, isCustomerView = false }: OrderAddressProps, ref) => {
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [invoiceAddresses, setInvoiceAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +70,9 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
 
   useEffect(() => {
     if (!formData.customerId) {
-      toast.error("No se ha seleccionado un cliente");
+      if (!isCustomerView && !formData.autoLoading) {
+        toast.error("No se ha seleccionado un cliente");
+      }
       return;
     }
 
@@ -81,7 +84,10 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
           const deliveryData = await AddressService.getAddresses(formData.customerId, "delivery");
           setDeliveryAddresses(deliveryData);
           
-          if (formData.deliveryAddress?.id) {
+          if (deliveryData.length === 1 && !formData.deliveryAddress?.id) {
+            form.setValue("merchandiseRecipient", String(deliveryData[0].id));
+          }
+          else if (formData.deliveryAddress?.id) {
             form.setValue("merchandiseRecipient", formData.deliveryAddress.id);
           }
         } catch (deliveryError) {
@@ -92,7 +98,10 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
           const invoiceData = await AddressService.getAddresses(formData.customerId, "invoice");
           setInvoiceAddresses(invoiceData);
           
-          if (formData.invoiceAddress?.id) {
+          if (invoiceData.length === 1 && !formData.invoiceAddress?.id) {
+            form.setValue("billingRecipient", String(invoiceData[0].id));
+          }
+          else if (formData.invoiceAddress?.id) {
             form.setValue("billingRecipient", formData.invoiceAddress.id);
           }
         } catch (invoiceError) {

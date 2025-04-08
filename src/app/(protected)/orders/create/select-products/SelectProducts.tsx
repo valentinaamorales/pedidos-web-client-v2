@@ -198,6 +198,16 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
     if (onComplete) onComplete();
   }
 
+  const handleQuantityInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, product: Product) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const value = parseInt((e.target as HTMLInputElement).value);
+      if (!isNaN(value) && value >= 1) {
+        updateQuantity(product.id, value);
+      }
+    }
+  };
+
   return (
     <Card className="w-full mx-auto">
       <CardHeader className="space-y-1">
@@ -306,7 +316,19 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-12 text-center">{product.quantity}</span>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={product.quantity}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (!isNaN(value) && value >= 1) {
+                                  updateQuantity(product.id, value);
+                                }
+                              }}
+                              onKeyDown={(e) => handleQuantityInputKeyDown(e, product)}
+                              className="th-8 w-16 text-center px-1"
+                            />
                           <Button
                             variant="outline"
                             size="icon"
@@ -365,8 +387,19 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                         <Minus className="h-3 w-3" />
                       </Button>
                       <div className="flex items-center space-x-1">
-                        <span className="text-center">{product.quantity}</span>
-                        <span className="text-xs text-muted-foreground">{product.uom_id?.[1] || ''}</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={product.quantity}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            if (!isNaN(value) && value >= 1) {
+                              updateQuantity(product.id, value);
+                            }
+                          }}
+                          className="h-8 w-16 text-center px-1"
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{product.uom_id?.[1] || ''}</span>
                       </div>
                       <Button
                         variant="outline"

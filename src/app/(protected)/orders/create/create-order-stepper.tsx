@@ -60,7 +60,7 @@ export function CreateOrderStepper() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isStepValid, setIsStepValid] = useState(true) // Por defecto true para permitir avanzar inicialmente
-  const [isLoading, setIsLoading] = useState(!!copyFromId || roleLoading || (isCustomer && customerLoading));
+  const [isLoading, setIsLoading] = useState(true);
 
   // Referencia para acceder a métodos de componentes hijos
   const componentRef = useRef<ComponentWithSaveMethod>(null)
@@ -111,7 +111,7 @@ export function CreateOrderStepper() {
     
     // Solo avanzar si se guardaron los datos correctamente o no hay método de guardado
     if (canContinue) {
-      if (currentStep < steps.length - 1) {
+      if (currentStep < activeSteps.length - 1) {
         setCurrentStep(currentStep + 1);
       } else {
         if (updatedData !== null) {
@@ -206,8 +206,10 @@ export function CreateOrderStepper() {
         company: customerData.name,
         companyId: customerData.company,
         customer: customerData.name,
-        customerId: customerData.id
+        customerId: customerData.id,
+        autoLoading: true
       });
+      setIsLoading(false);
     }
   }, [isCustomer, customerData, isLoading, copyFromId]);
 
@@ -257,7 +259,7 @@ export function CreateOrderStepper() {
               quantity: item.quantity,
               reference: String(item.productId),
               price: item.priceUnit || 0,
-              uom_id: ["uom", ""]
+              uom_id: [1, ""] as [number, string]
             })),
             observations: orderData.referenceCustomer || ""
           };
@@ -284,14 +286,32 @@ export function CreateOrderStepper() {
     }
   }, [copyFromId]);
  
-  const CurrentStepComponent = activeSteps[currentStep].component;
+
+  useEffect(() => {
+    // Si estamos copiando de otro pedido, dejamos que ese efecto maneje el estado
+    if (copyFromId) return;
+    
+    // Actualizar el estado de carga basado en las condiciones
+    setIsLoading(roleLoading || (isCustomer && customerLoading));
+  }, [roleLoading, customerLoading, isCustomer, copyFromId]);
+
+
+  const CurrentStepComponent = activeSteps && currentStep < activeSteps.length
+    ? activeSteps[currentStep]?.component
+    : null;
 
   return (
     <div className="w-full max-w-[900px] mx-auto">
-      {isLoading ? (
+      {isLoading || !CurrentStepComponent ? (
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-          <p>Cargando datos del pedido anterior...</p>
+          <p>
+            {copyFromId 
+              ? "Cargando datos del pedido anterior..." 
+              : isCustomer && customerLoading 
+                ? "Cargando datos del cliente..." 
+                : "Cargando información necesaria..."}
+          </p>
         </div>
       ) : (
         <>
@@ -332,6 +352,7 @@ export function CreateOrderStepper() {
               updateFormData={updateFormData}
               onComplete={handleStepComplete}
               onValidationChange={handleValidationChange}
+              isCustomerView={isCustomer}
             />
           </div>
   
