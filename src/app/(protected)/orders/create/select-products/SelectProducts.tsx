@@ -50,6 +50,8 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [editingQuantities, setEditingQuantities] = useState<Record<number, string>>({});
+
 
   useEffect(() => {
     if (onValidationChange) {
@@ -316,19 +318,44 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={product.quantity}
-                              onChange={(e) => {
-                                const value = parseInt(e.target.value);
-                                if (!isNaN(value) && value >= 1) {
-                                  updateQuantity(product.id, value);
+                          <Input
+                            type="text"
+                            value={editingQuantities[product.id] !== undefined 
+                              ? editingQuantities[product.id] 
+                              : product.quantity}
+                            onChange={(e) => {
+                              // Permitir solo dígitos o campo vacío
+                              if (/^\d*$/.test(e.target.value)) {
+                                setEditingQuantities({
+                                  ...editingQuantities,
+                                  [product.id]: e.target.value
+                                });
+                              }
+                            }}
+                            onBlur={() => {
+                              const value = editingQuantities[product.id];
+                              // Al perder el foco, convertir a número
+                              if (value !== undefined) {
+                                const numValue = parseInt(value);
+                                if (!isNaN(numValue) && numValue >= 1) {
+                                  updateQuantity(product.id, numValue);
+                                } else {
+                                  // Si es inválido, restaurar valor anterior
+                                  updateQuantity(product.id, 1);
                                 }
-                              }}
-                              onKeyDown={(e) => handleQuantityInputKeyDown(e, product)}
-                              className="th-8 w-16 text-center px-1"
-                            />
+                                // Limpiar estado de edición
+                                const newEditingQuantities = {...editingQuantities};
+                                delete newEditingQuantities[product.id];
+                                setEditingQuantities(newEditingQuantities);
+                              }
+                            }}
+                            className="h-8 w-16 text-center px-1"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur(); // Forzar onBlur al presionar Enter
+                              }
+                            }}
+                          />
                           <Button
                             variant="outline"
                             size="icon"

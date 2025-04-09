@@ -394,7 +394,7 @@ export function CreateOrderStepper() {
                   </>
                 ) : (
                   <>
-                    <span>Finalizar pedido</span>
+                    <span>Enviar pedido</span>
                     <CircleCheck className="ml-2 h-4 w-4" />
                   </>
                 )}
