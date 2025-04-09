@@ -11,6 +11,7 @@ import { OrderService } from "@/app/api/order/order-service"
 import { CompanyService } from "@/app/api/companies/company-service"
 import { useRole } from "@/hooks/use-role"
 import { useCustomerData } from "@/hooks/customer-data"
+import { useProfile } from "@/hooks/use-profile"
 
 // Referencias a los componentes
 const SelectCompany = dynamic(() => import("./select-company/SelectCompany"))
@@ -43,7 +44,7 @@ interface FormData {
   orderInfo?: any;
   products: Array<Product & { quantity: number }>;
   observations: string;
-  priceListId?: number;
+  pricelistId?: number;
   deliveryAddress?: any;
   invoiceAddress?: any;
 }
@@ -56,11 +57,12 @@ export function CreateOrderStepper() {
   const { role, loading: roleLoading } = useRole()
   const isCustomer = role === 'customer'
   const { customerData, isLoading: customerLoading } = useCustomerData()
+  const { profile } = useProfile()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isStepValid, setIsStepValid] = useState(true) // Por defecto true para permitir avanzar inicialmente
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true)
 
   // Referencia para acceder a métodos de componentes hijos
   const componentRef = useRef<ComponentWithSaveMethod>(null)
@@ -167,10 +169,12 @@ export function CreateOrderStepper() {
         companyId: Number(data.companyId),
         customerId: Number(data.customerId),
         dateOrder,
+        observations: data.observations,
         // Incluir campos opcionales solo si tienen valor
-        ...(data.priceListId ? { priceListId: data.priceListId } : {}),
+        ...(data.pricelistId ? { pricelistId: data.pricelistId } : {}),
         ...(shippingAddressId ? { customerShippingAdressId: Number(shippingAddressId) } : {}),
         ...(invoiceAddressId ? { customerInvoiceAdressId: Number(invoiceAddressId) } : {}),
+        ...(profile?.id ? { userId: profile.id } : {}),
         items,
       };
 
@@ -252,7 +256,7 @@ export function CreateOrderStepper() {
               id: "invoice-default",
               address: orderData.invoiceAddress
             },
-            priceListId: orderData.listPrice ? orderData.listPrice[0] : undefined,
+            pricelistId: orderData.listPrice ? orderData.listPrice[0] : undefined,
             products: orderData.items.map(item => ({
               id: item.productId,
               name: item.productName,

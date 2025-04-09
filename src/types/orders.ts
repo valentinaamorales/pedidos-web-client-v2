@@ -8,9 +8,10 @@ export interface OrderCreateDTO {
     customerId: number;
     companyId: number;
     dateOrder: string;
-    priceListId?: number | null;
+    pricelistId?: number | null;
     customerShippingAdressId?: number | null;
     customerInvoiceAdressId?: number | null;
+    userId?: number;
     items: OrderItem[];
   }
 

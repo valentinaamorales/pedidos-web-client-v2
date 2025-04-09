@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, Plus, Trash2, Minus, Loader2 } from "lucide-react"
+import { Search, Plus, Trash2, Minus } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -18,40 +18,46 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { ProductService } from "@/app/api/products/product-service"
-import { PriceListService, PriceList } from "@/app/api/pricelists/pricelist-service"
-import { Product as ApiProduct } from '@/types/products';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Loader2 } from "lucide-react"
+import { PriceListService } from "@/app/api/pricelists/pricelist-service"
+import { PriceList, PriceListItem, ProductPackage } from '@/types/pricelists';
 
-
-// Extendemos el tipo Product para nuestro uso local
-interface Product extends ApiProduct {
-  quantity: number;
+// Extendemos el tipo para nuestro uso interno
+interface ProductWithSelection extends PriceListItem {
+  selectedPackage: ProductPackage | null;
+  packageQuantity: number;
 }
 
 interface SelectProductsProps {
   formData?: {
-    products?: Product[];
+    products?: any[];
     observations?: string;
     companyId?: string | number; 
     customerId?: string | number;
   }
   updateFormData: (data: Record<string, any>) => void;
   onComplete?: () => void; 
-  createOrder?: () => void;
   onValidationChange?: (isValid: boolean) => void;
+  isCustomerView?: boolean;
 }
 
-const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, createOrder, onValidationChange }: SelectProductsProps, ref) => {
-  const [priceList, setPriceList] = useState<PriceList | null>(null);
-  const [products, setProducts] = useState<Product[]>(formData?.products || []);
+const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, onValidationChange }: SelectProductsProps, ref) => {
+  const [pricelist, setPriceList] = useState<PriceList | null>(null);
+  const [products, setProducts] = useState<ProductWithSelection[]>([]);
   const [observations, setObservations] = useState(formData?.observations || "");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<PriceListItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [editingQuantities, setEditingQuantities] = useState<Record<number, string>>({});
-
 
   useEffect(() => {
     if (onValidationChange) {
@@ -59,163 +65,272 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
     }
   }, [products, onValidationChange]);
 
-  useEffect(() => {
-    // Si tenemos productos precargados, establecerlos
-    if (formData?.products && formData.products.length > 0) {
-      console.log("Estableciendo productos precargados:", formData.products);
-      setProducts(formData.products);
-      
-      // Si hay observaciones, establecerlas
-      if (formData.observations) {
-        setObservations(formData.observations);
-      }
-    }
-  }, []);
-  
-  // Exponer método saveData al padre
-  useImperativeHandle(ref, () => ({
-    saveData: () => {
-      // Validar si hay productos
-      if (products.length === 0) {
-        toast.error("Debes añadir al menos un producto");
-        return false;
-      }
-      
-      const updatedData = { 
-        products: [...products],
-        observations, 
-        priceListId: priceList?.id 
-      };
-      
-      updateFormData(updatedData);
-      
-      return updatedData;
-    }
-  }));
-
-  // Añade un efecto para cargar la lista de precios cuando se monte el componente
+  // Efecto para cargar la lista de precios al iniciar
   useEffect(() => {
     if (!formData?.companyId || !formData?.customerId) {
       return;
     }
 
     const fetchPriceList = async () => {
+      setIsLoading(true);
       try {
-        const customerId = formData.customerId || '';
-        const companyId = formData.companyId || '';
         const data = await PriceListService.getPriceList(
-          customerId,
-          companyId
+          formData.customerId,
+          formData.companyId
         );
+
+        // Insertar aquí el código para añadir la opción por kg
+        if (data && data.items) {
+          // Modificar los packagesItems para añadir opción por kg
+          const enhancedItems = data.items.map(item => {
+            // Tomar la unidad de medida del primer packagesItem si existe
+            const baseUom = item.packagesItems.length > 0 ? item.packagesItems[0].uom_id : [1, "und"];
+            
+            // Añadir opción "Por kilogramo" si la unidad es kg
+            let packages = [...item.packagesItems];
+            if (baseUom[1].toLowerCase() === "kg" && !packages.some(p => p.quantity === 1)) {
+              packages.push({
+                id: -1, // ID especial para la opción por kg
+                name: "Por kilogramo",
+                quantity: 1, // 1 kg
+                uom_id: baseUom
+              });
+            }
+            
+            return {
+              ...item,
+              packagesItems: packages
+            };
+          });
+          
+          // Actualizar data con los items mejorados
+          data.items = enhancedItems;
+        }
+
         setPriceList(data);
+        
+        // Inicializar productos anteriores si existen
+        if (formData?.products && formData.products.length > 0) {
+          // Buscar los productos en la lista de precios para restaurar correctamente
+          const restoredProducts = formData.products.map(p => {
+            // Buscar el producto en la lista de precios
+            const priceListItem = data?.items?.find(item => 
+              item.productReference === p.reference || 
+              (item.product && item.product[0] === p.id)
+            );
+            
+            if (priceListItem) {
+              // Encontrar el package correspondiente
+              const packageItem = priceListItem.packagesItems.find(pkg => 
+                pkg.uom_id[0] === p.uom_id[0]
+              ) || priceListItem.packagesItems[0];
+              
+              return {
+                ...priceListItem,
+                selectedPackage: packageItem || null,
+                packageQuantity: p.quantity / (packageItem?.quantity || 1)
+              };
+            }
+            
+            // Si no se encuentra en la lista de precios, usar los datos que tenemos
+            return {
+              id: p.id,
+              name: p.name,
+              product: [p.id, p.name],
+              productReference: p.reference,
+              price: p.price.toString(),
+              packagesItems: p.uom_id ? [{
+                id: 1,
+                name: p.packageInfo || "Unidad",
+                quantity: 1,
+                uom_id: p.uom_id
+              }] : [],
+              min_quantity: 0,
+              selectedPackage: {
+                id: 1,
+                name: p.packageInfo || "Unidad",
+                quantity: 1,
+                uom_id: p.uom_id || [1, "unid"]
+              },
+              packageQuantity: p.quantity
+            };
+          });
+          
+          setProducts(restoredProducts);
+        }
       } catch (error) {
         console.error("Error al cargar la lista de precios:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchPriceList();
   }, [formData?.customerId, formData?.companyId]);
 
+  // Filtrar productos según el término de búsqueda
   useEffect(() => {
-    // No buscar si el término es menor a 3 caracteres
-    if (searchTerm.length < 3) {
-      if (searchTerm.length > 0) {
-        // Limpiar resultados si hay texto pero no suficientes caracteres
-        setFilteredProducts([]);
-      }
+    if (!searchTerm || searchTerm.length < 3 || !pricelist || !pricelist.items) {
+      setFilteredProducts([]);
+      return;
+    }
+
+    setHasSearched(true);
+    
+    const searchLower = searchTerm.toLowerCase();
+    const filtered = pricelist.items.filter(item => 
+      item.name.toLowerCase().includes(searchLower) || 
+      item.productReference.toLowerCase().includes(searchLower) ||
+      item.product[1].toLowerCase().includes(searchLower)
+    );
+    
+    setFilteredProducts(filtered);
+  }, [searchTerm, pricelist]);
+
+  // Añadir un producto a la selección
+  const addProduct = (product: PriceListItem) => {
+    if (products.some(p => p.id === product.id)) {
+      toast.warning("Este producto ya está en tu lista");
       return;
     }
     
-    const searchProducts = async () => {
-      if (!formData?.companyId) {
-        toast.error("No se ha seleccionado una empresa");
-        return;
-      }
-      
-      setIsLoading(true);
-      setHasSearched(true);
-      
-      try {
-        const data = await ProductService.searchProducts(formData.companyId, searchTerm);
-        const productsWithQuantity = data.map(product => ({
-          ...product,
-          quantity: 1
-        }));
-        setFilteredProducts(productsWithQuantity);
-      } catch (error) {
-        console.error("Error buscando productos:", error);
-        toast.error("Error al cargar los productos");
-        setFilteredProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
+    // Seleccionar el primer empaque por defecto
+    const selectedPackage = product.packagesItems[0] || null;
+    
+    const newProduct: ProductWithSelection = {
+      ...product,
+      selectedPackage,
+      packageQuantity: 1
     };
-    
-    // Debounce para evitar demasiadas llamadas mientras se escribe
-    const timeoutId = setTimeout(() => {
-      searchProducts();
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, formData?.companyId]);
 
-  const addProduct = (product: ApiProduct) => {
-    const existingProduct = products.find((p) => p.id === product.id);
-
-    if (existingProduct) {
-      toast.warning("Producto ya agregado", { description: "Este producto ya está en tu lista." });
-      return;
-    }
-
-    const newProduct: Product = { ...product, quantity: 1 };
     setProducts([...products, newProduct]);
     setIsDialogOpen(false);
+    toast.success("Producto agregado");
+  };
 
-    toast.success("Producto agregado", { description: `${product.name} ha sido agregado a tu pedido.` });
-  }
-
-  const removeProduct = (id: number) => {
-    setProducts(products.filter((product) => product.id !== id));
-    toast.success("Producto eliminado", { description: "El producto ha sido eliminado de tu pedido." });
-  }
-
-  const updateQuantity = (id: number, quantity: number) => {
-    if (quantity <= 0) return;
-    setProducts(products.map((product) => (product.id === id ? { ...product, quantity } : product)));
-  }
-
-  const handleSave = () => {    
-    const updatedData = { 
-      products: [...products], // Crear una nueva copia del array
-      observations, 
-      priceListId: priceList?.id 
-    };
+  // Actualizar la cantidad de un producto
+  const updateQuantity = (productId: number, quantity: number) => {
+    if (quantity < 1) quantity = 1;
+    
+    // Encontrar el producto que se está modificando
+    const product = products.find(p => p.id === productId);
+    
+    // Si es opción "Por kilogramo" (ID -1) y hay otros packagesItems
+    if (product && product.selectedPackage?.id === -1 && product.packagesItems.length > 1) {
+      // Encontrar el tamaño del bulto estándar (el primer packagesItem que no sea "Por kilogramo")
+      const standardPackage = product.packagesItems.find(p => p.id !== -1);
+      
+      if (standardPackage) {
+        const packageSize = standardPackage.quantity;
         
-    updateFormData(updatedData);
-    
-    toast.success("Productos guardados", { 
-      description: `Se han guardado ${products.length} productos en tu pedido.` 
-    });
-    
-    if (onComplete) onComplete();
-  }
-
-  const handleQuantityInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, product: Product) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const value = parseInt((e.target as HTMLInputElement).value);
-      if (!isNaN(value) && value >= 1) {
-        updateQuantity(product.id, value);
+        // Asegurarse de que la cantidad sea múltiplo del tamaño del paquete
+        if (quantity % packageSize !== 0) {
+          // Redondear al múltiplo más cercano
+          quantity = Math.round(quantity / packageSize) * packageSize;
+          
+          // Asegurarse de que sea al menos el tamaño del paquete
+          if (quantity < packageSize) quantity = packageSize;
+          
+          // Notificar al usuario
+          toast.info(`La cantidad se ha ajustado a ${quantity} kg para coincidir con el tamaño del empaque`);
+        }
       }
     }
+    
+    // Actualizar la cantidad
+    setProducts(products.map(p => 
+      p.id === productId ? { ...p, packageQuantity: quantity } : p
+    ));
   };
+
+  // Cambiar la presentación seleccionada
+  const updateSelectedPackage = (productId: number, packageId: number) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const newPackage = p.packagesItems.find(pkg => pkg.id === packageId) || null;
+        return {
+          ...p,
+          selectedPackage: newPackage,
+          packageQuantity: 1
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Eliminar un producto
+  const removeProduct = (productId: number) => {
+    setProducts(products.filter(p => p.id !== productId));
+    toast.success("Producto eliminado");
+  };
+
+  // Calcular cantidad total (unidades * tamaño de empaque)
+  const calculateTotalQuantity = (product: ProductWithSelection): number => {
+    if (!product.selectedPackage) return product.packageQuantity;
+    return product.packageQuantity * product.selectedPackage.quantity;
+  };
+
+  // Parsear string de precio a número
+  const parsePrice = (priceStr: string): number => {
+    return PriceListService.parsePriceString(priceStr);
+  };
+
+  // Calcular precio total de un producto
+  const calculateProductTotal = (product: ProductWithSelection): number => {
+    const unitPrice = parsePrice(product.price);
+    if (!product.selectedPackage) return 0;
+
+    // Calcular kg totales: cantidad de paquetes × kg por paquete
+    const totalKg = product.packageQuantity * product.selectedPackage.quantity;
+    
+    // Multiplicar precio unitario por kg totales
+    return unitPrice * totalKg;
+  };
+  
+  // Calcular el total del pedido
+  const calculateOrderTotal = (): number => {
+    return products.reduce((total, product) => {
+      return total + calculateProductTotal(product);
+    }, 0);
+  };
+
+  // Exponer métodos al componente padre
+  useImperativeHandle(ref, () => ({
+    saveData: () => {
+      if (products.length === 0) {
+        toast.error("Debes añadir al menos un producto");
+        return false;
+      }
+
+      // Formatear productos para el formulario
+      const formattedProducts = products.map(p => ({
+        id: p.product[0],
+        name: p.product[1],
+        reference: p.productReference,
+        quantity: calculateTotalQuantity(p),
+        price: parsePrice(p.price),
+        uom_id: p.selectedPackage?.uom_id || [0, ""],
+        packageInfo: p.selectedPackage?.name,
+        packageQuantity: p.packageQuantity
+      }));
+
+      const updatedData = {
+        products: formattedProducts,
+        observations,
+        pricelistId: pricelist?.id
+      };
+      
+      updateFormData(updatedData);
+      return updatedData;
+    }
+  }));
 
   return (
     <Card className="w-full mx-auto">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Agregar Productos</CardTitle>
         <CardDescription className="text-md text-muted-foreground">
-          Selecciona los productos que deseas añadir al pedido.
+          Selecciona los productos disponibles para este cliente.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -231,23 +346,18 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
             <DialogContent className="sm:max-w-md max-w-[95vw] w-full">
               <DialogHeader>
                 <DialogTitle>Buscar Productos</DialogTitle>
-                <DialogDescription>Busca y selecciona los productos que deseas agregar a tu pedido.</DialogDescription>
+                <DialogDescription>Busca y selecciona los productos disponibles</DialogDescription>
               </DialogHeader>
               <div className="flex items-center space-x-2 my-4">
-                <div className="grid flex-1 gap-2">
-                  <Label htmlFor="search" className="sr-only">
-                    Buscar
-                  </Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="Escribe al menos 3 caracteres para buscar productos..."
-                      className="pl-8"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
+                <div className="relative w-full">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Buscar productos..."
+                    className="pl-8 w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
               
@@ -257,20 +367,24 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                 </p>
               )}
 
-              <ScrollArea className="h-[200px] rounded-md border p-4">
+              <ScrollArea className="h-[300px] rounded-md border p-4">
                 {isLoading ? (
                   <div className="flex justify-center items-center h-full">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between py-2 border-b">
+                    <div key={product.id} className="py-2 border-b flex justify-between items-center">
                       <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">Unidad: {product.uom_id?.[1]}</p>
+                        <p className="font-medium">{product.product[1]}</p>
+                        <p className="text-sm text-muted-foreground">Ref: {product.productReference}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => addProduct(product)}>
-                        <Plus className="h-4 w-4" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => addProduct(product)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Agregar
                       </Button>
                     </div>
                   ))
@@ -282,6 +396,7 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                   </p>
                 )}
               </ScrollArea>
+              
               <DialogFooter className="sm:justify-end">
                 <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
                   Cerrar
@@ -292,29 +407,53 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
         </div>
 
         {products.length > 0 ? (
-          <div className="overflow-x-auto -mx-6 px-6">
-            <div className="hidden sm:block">
-              {/* Desktop table view */}
+          <div className="space-y-4">
+            {/* Tabla de productos (para pantallas medianas y grandes) */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 font-medium">Producto</th>
-                    <th className="text-left py-3 font-medium">Cantidad</th>
-                    <th className="text-left py-3 font-medium">Unidad</th>
-                    <th className="text-right py-3 font-medium">Acciones</th>
+                    <th className="py-2 text-left">Producto</th>
+                    <th className="py-2 w-[180px]">Presentación</th>
+                    <th className="py-2 w-[120px]">Cantidad</th>
+                    <th className="py-2 text-right">Precio</th>
+                    <th className="py-2 text-right">Total</th>
+                    <th className="py-2 w-[60px]"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((product) => (
                     <tr key={product.id} className="border-b">
-                      <td className="py-3 font-medium">{product.name}</td>
-                      <td className="py-3">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-2">
+                        <div>
+                          <p className="font-medium">{product.product[1]}</p>
+                          <p className="text-xs text-muted-foreground">Ref: {product.productReference}</p>
+                        </div>
+                      </td>
+                      <td className="py-2">
+                        <Select 
+                          value={product.selectedPackage?.id.toString() || ""} 
+                          onValueChange={(value) => updateSelectedPackage(product.id, parseInt(value))}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {product.packagesItems.map(pkg => (
+                              <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                                {pkg.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="py-2">
+                        <div className="flex items-center space-x-1">
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(product.id, Math.max(1, product.quantity - 1))}
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(product.id, product.packageQuantity - 1)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -322,9 +461,8 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                             type="text"
                             value={editingQuantities[product.id] !== undefined 
                               ? editingQuantities[product.id] 
-                              : product.quantity}
+                              : product.packageQuantity}
                             onChange={(e) => {
-                              // Permitir solo dígitos o campo vacío
                               if (/^\d*$/.test(e.target.value)) {
                                 setEditingQuantities({
                                   ...editingQuantities,
@@ -332,47 +470,48 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                                 });
                               }
                             }}
-                            onBlur={() => {
-                              const value = editingQuantities[product.id];
-                              // Al perder el foco, convertir a número
-                              if (value !== undefined) {
+                            onBlur={(e) => {
+                              const value = e.target.value;
+                              if (value) {
                                 const numValue = parseInt(value);
                                 if (!isNaN(numValue) && numValue >= 1) {
                                   updateQuantity(product.id, numValue);
-                                } else {
-                                  // Si es inválido, restaurar valor anterior
-                                  updateQuantity(product.id, 1);
                                 }
-                                // Limpiar estado de edición
-                                const newEditingQuantities = {...editingQuantities};
-                                delete newEditingQuantities[product.id];
-                                setEditingQuantities(newEditingQuantities);
                               }
+                              const newEditing = {...editingQuantities};
+                              delete newEditing[product.id];
+                              setEditingQuantities(newEditing);
                             }}
-                            className="h-8 w-16 text-center px-1"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.currentTarget.blur(); // Forzar onBlur al presionar Enter
-                              }
-                            }}
+                            className="h-7 w-12 text-center text-sm p-1"
                           />
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(product.id, product.quantity + 1)}
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(product.id, product.packageQuantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
                       </td>
-                      <td className="py-3">{product.uom_id?.[1] || 'N/A'}</td>
-                      <td className="py-3 text-right">
+                      <td className="py-2 text-right text-sm">
+                        {parsePrice(product.price).toLocaleString('es-CO', {
+                          style: 'currency',
+                          currency: 'COP'
+                        })}
+                      </td>
+                      <td className="py-2 text-right font-medium">
+                        {calculateProductTotal(product).toLocaleString('es-CO', {
+                          style: 'currency',
+                          currency: 'COP'
+                        })}
+                      </td>
+                      <td className="py-2 text-right">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => removeProduct(product.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                          className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -380,66 +519,115 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={4} className="py-2 text-right font-bold">Total pedido:</td>
+                    <td className="py-2 text-right font-bold">
+                      {calculateOrderTotal().toLocaleString('es-CO', {
+                        style: 'currency',
+                        currency: 'COP'
+                      })}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
-            {/* Mobile card view - mantenemos igual */}
+            {/* Versión móvil (cards) */}
             <div className="sm:hidden space-y-4">
               {products.map((product) => (
-                <div key={product.id} className="border rounded-lg p-4 bg-card">
-                  {/* Contenido móvil igual que antes */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-medium">{product.name}</h4>
-                      <p className="text-sm text-muted-foreground">Unidad: {product.uom_id?.[1] || 'N/A'}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeProduct(product.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-100 -mt-1 -mr-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                <div key={product.id} className="border rounded-lg p-4 relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeProduct(product.id)}
+                    className="absolute right-2 top-2 h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+
+                  <div className="mb-3">
+                    <h4 className="font-medium">{product.product[1]}</h4>
+                    <p className="text-xs text-muted-foreground">Ref: {product.productReference}</p>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm font-medium">Cantidad:</span>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(product.id, Math.max(1, product.quantity - 1))}
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs block mb-1">Presentación</Label>
+                      <Select 
+                        value={product.selectedPackage?.id.toString() || ""} 
+                        onValueChange={(value) => updateSelectedPackage(product.id, parseInt(value))}
                       >
-                        <Minus className="h-3 w-3" />
-                      </Button>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {product.packagesItems.map(pkg => (
+                            <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                              {pkg.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs block mb-1">Cantidad</Label>
                       <div className="flex items-center space-x-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(product.id, product.packageQuantity - 1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
                         <Input
-                          type="number"
-                          min="1"
-                          value={product.quantity}
+                          type="text"
+                          value={product.packageQuantity}
                           onChange={(e) => {
                             const value = parseInt(e.target.value);
                             if (!isNaN(value) && value >= 1) {
                               updateQuantity(product.id, value);
                             }
                           }}
-                          className="h-8 w-16 text-center px-1"
+                          className="h-7 w-12 text-center text-sm p-1"
                         />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{product.uom_id?.[1] || ''}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(product.id, product.packageQuantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(product.id, product.quantity + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
                     </div>
+                  </div>
+                  
+                  <div className="mt-3 flex justify-between items-center text-sm">
+                    <span>Precio unitario: {parsePrice(product.price).toLocaleString('es-CO', {
+                      style: 'currency',
+                      currency: 'COP'
+                    })}</span>
+                    <span className="font-bold">Total: {calculateProductTotal(product).toLocaleString('es-CO', {
+                      style: 'currency',
+                      currency: 'COP'
+                    })}</span>
                   </div>
                 </div>
               ))}
+              
+              {/* Total en móvil */}
+              <div className="border-t pt-4 flex justify-between">
+                <span className="font-bold">Total pedido:</span>
+                <span className="font-bold">
+                  {calculateOrderTotal().toLocaleString('es-CO', {
+                    style: 'currency',
+                    currency: 'COP'
+                  })}
+                </span>
+              </div>
             </div>
           </div>
         ) : (
@@ -461,9 +649,8 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, creat
         </div>
       </CardContent>
     </Card>
-    )
-  }
-);
+  );
+});
 
 SelectProducts.displayName = "SelectProducts";
 export default SelectProducts;

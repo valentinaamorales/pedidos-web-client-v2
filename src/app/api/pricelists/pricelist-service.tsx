@@ -1,12 +1,7 @@
 import { getAccessToken } from '@/app/actions/getAccessToken';
 import { axiosInstance } from '@/lib/axios';
 import axios from 'axios';
-
-export interface PriceList {
-  id: number;
-  name: string;
-  company?: number;
-}
+import { PriceList } from '@/types/products';
 
 export class PriceListService {
   static async getPriceList(
@@ -37,4 +32,11 @@ export class PriceListService {
       return null;
     }
   }
+
+  static parsePriceString(priceStr: string): number {
+    if (!priceStr) return 0;
+    return parseFloat(priceStr.replace(/[$,\s]/g, '')) || 0;
+  }
 }
+
+export type { PriceList };
