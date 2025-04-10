@@ -174,7 +174,7 @@ export function CreateOrderStepper() {
         ...(data.pricelistId ? { pricelistId: data.pricelistId } : {}),
         ...(shippingAddressId ? { customerShippingAdressId: Number(shippingAddressId) } : {}),
         ...(invoiceAddressId ? { customerInvoiceAdressId: Number(invoiceAddressId) } : {}),
-        ...(profile?.id ? { userId: profile.id } : {}),
+        ...(profile?.code_erp ? { userId: parseInt(profile.code_erp) } : {}),
         items,
       };
 

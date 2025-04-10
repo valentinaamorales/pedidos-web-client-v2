@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import { PriceListService } from "@/app/api/pricelists/pricelist-service"
-import { PriceList, PriceListItem, ProductPackage } from '@/types/pricelists';
+import { PriceList, PriceListItem, ProductPackage } from '@/types/products';
 
 // Extendemos el tipo para nuestro uso interno
 interface ProductWithSelection extends PriceListItem {
@@ -225,14 +225,10 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, onVal
         
         // Asegurarse de que la cantidad sea múltiplo del tamaño del paquete
         if (quantity % packageSize !== 0) {
-          // Redondear al múltiplo más cercano
-          quantity = Math.round(quantity / packageSize) * packageSize;
-          
-          // Asegurarse de que sea al menos el tamaño del paquete
-          if (quantity < packageSize) quantity = packageSize;
-          
-          // Notificar al usuario
-          toast.info(`La cantidad se ha ajustado a ${quantity} kg para coincidir con el tamaño del empaque`);
+          toast.warning(`La cantidad ${quantity} kg no es un múltiplo del tamaño de bulto (${packageSize} kg)`, {
+            description: "Por favor validar.",
+            duration: 4000
+          });
         }
       }
     }

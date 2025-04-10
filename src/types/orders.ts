@@ -38,6 +38,8 @@ export interface OrderResponseDTO {
     listPrice: [number, string] | [];
     paymentTerm: [number, string] | [];
     referenceCustomer?: string;
+    observations?: string;
+    userCreatedOrder?: [number, string] | [];
     items: OrderItemResponse[];
 }
 

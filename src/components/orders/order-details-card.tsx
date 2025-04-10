@@ -61,10 +61,12 @@ export function OrderDetailsCard({ orderId }: OrderDetailsCardProps) {
             <p className="text-sm">{order.customer[1] || "No disponible"}</p>
           </div>
 
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground">Estado</h3>
-            <p className="text-sm">{order.state || "No disponible"}</p>
-          </div>
+          {order.userCreateOrder && order.userCreateOrder.length > 1 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Creado por</h3>
+              <p className="text-sm">{order.userCreateOrder[1]}</p>
+            </div>
+          )}
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground">Fecha</h3>
@@ -93,8 +95,8 @@ export function OrderDetailsCard({ orderId }: OrderDetailsCardProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground">Vendedor</h3>
-            <p className="text-sm">{order.vendor && order.vendor.length > 1 ? order.vendor[1] : "No disponible"}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">Observaciones</h3>
+            <p className="text-sm">{order.observations || "Sin observaciones"}</p>
           </div>
 
           <div>
