@@ -55,4 +55,5 @@ export interface Order {
 export interface OrdersQueryParams {
     limit?: number;
     offset?: number;
+    userCreateOrderId?: number;
 }

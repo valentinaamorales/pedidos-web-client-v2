@@ -10,6 +10,11 @@ import { Button } from "@/components/ui/button";
 import { OrderDetailsDialog } from "@/components/orders/order-details-dialog";
 import { OrderService } from "@/app/api/order/order-service";
 
+interface OrdersTableProps {
+  userCreateOrderId?: number;
+  isCustomerView?: boolean;
+}
+
 function mapOrderResponseToTableFormat(order: OrderResponseDTO): Order {
   return {
     id: order.id,
@@ -66,14 +71,6 @@ const columns: ColumnDef<Order>[] = [
     }
   },
   {
-    accessorKey: "customer",
-    header: "Cliente",
-    cell: ({ row }) => {
-      const customer = row.getValue("customer") as [number, string] | [];
-      return customer && customer.length >= 2 ? customer[1] : "N/A";
-    }
-  },
-  {
     id: "actions",
     header: "Acciones",
     cell: ({ row }) => {
@@ -83,7 +80,7 @@ const columns: ColumnDef<Order>[] = [
   },
 ];
 
-export function OrdersTable() {
+export function OrdersTable({ userCreateOrderId, isCustomerView = false }: OrdersTableProps) {
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +94,13 @@ export function OrdersTable() {
 
   // Obtiene datos para la página actual
   const fetchOrders = async () => {
+    // Si no hay ID de usuario, no podemos filtrar los pedidos
+    if (!userCreateOrderId) {
+      console.warn("No se pudo obtener el ID del usuario para filtrar pedidos.");
+      setLoading(false);
+      return;
+    }
+  
     if(pagesCache.current[pagination.pageIndex]) {
       setData(pagesCache.current[pagination.pageIndex]);
       return;
@@ -111,7 +115,8 @@ export function OrdersTable() {
       
       const ordersData = await OrderService.getOrders({
         limit: pagination.pageSize,
-        offset: offset
+        offset: offset,
+        userCreateOrderId: userCreateOrderId 
       });
       
       // Convertir al formato de la tabla
@@ -142,6 +147,8 @@ export function OrdersTable() {
   useEffect(() => {
     fetchOrders();
   }, [pagination.pageIndex, pagination.pageSize]);
+
+  console.log("Realizando petición con userCreateOrderId:", userCreateOrderId);
 
   return (
     <div className="container mx-auto">

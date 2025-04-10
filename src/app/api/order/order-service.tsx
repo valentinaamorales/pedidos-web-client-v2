@@ -35,10 +35,12 @@ export class OrderService {
             const queryParams = new URLSearchParams();
             if (params.limit) queryParams.append("limit", params.limit.toString());
             if (params.offset) queryParams.append("offset", params.offset.toString());
+            if (params.userCreateOrderId) queryParams.append("user_create_order_id", params.userCreateOrderId.toString());
 
             const queryString = queryParams.toString();
-            const url = `/orders${queryString ? `?${queryString}` : ""}`;
-
+            const url = `/orders?${queryString}`;
+            console.log("URL de petición:", url);
+            
             const { data } = await axiosInstance.get<OrderResponseDTO[]>(url, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
