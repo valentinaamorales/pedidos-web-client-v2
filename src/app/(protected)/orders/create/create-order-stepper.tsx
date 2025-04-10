@@ -387,7 +387,7 @@ export function CreateOrderStepper() {
               </Button>
             ) : (
               <Button 
-                className="bg-secondary hover:bg-secondary/80 text-black"
+                className="bg-primary hover:bg-primary/80 text-white"
                 onClick={handleStepComplete}
                 disabled={!isStepValid || isSubmitting}
               >
