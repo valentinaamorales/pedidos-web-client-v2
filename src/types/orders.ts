@@ -39,7 +39,7 @@ export interface OrderResponseDTO {
     paymentTerm: [number, string] | [];
     referenceCustomer?: string;
     observations?: string;
-    userCreatedOrder?: [number, string] | [];
+    userCreateOrder?: [number, string] | [];
     items: OrderItemResponse[];
 }
 

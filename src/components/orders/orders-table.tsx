@@ -51,6 +51,26 @@ const columns: ColumnDef<Order>[] = [
   {
     accessorKey: "name",
     header: "Código",
+    cell: ({ row }) => {
+      const orderCode = row.getValue("name") as string;
+      const orderId = row.original.id;
+      return (
+        <Button
+          variant="link"
+          className="p-0 text-blue-600 hover:underline"
+          onClick={() => {
+            // Abrir ventana popup con la URL deseada
+            window.open(
+              `/orders/popup/${orderId}`, 
+              `Pedido ${orderCode}`,
+              'width=600,height=400,resizable=yes'
+            );
+          }}
+        >
+          {orderCode}
+        </Button>
+      );
+    }
   },
   {
     accessorKey: "dateOrder",

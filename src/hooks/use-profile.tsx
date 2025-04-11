@@ -25,16 +25,25 @@ export function useProfile() {
         setProfile(data);
         setError(null);
       } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.status === 404) {
-          router.push('/incomplete-profile');
-          return;
+        console.error("Profile error:", err);
+        
+        if (axios.isAxiosError(err)) {
+          // Si es un error 404 o contiene el mensaje sobre perfil incompleto
+          if (err.response?.status === 404 || 
+              (err.response?.data?.detail && 
+               err.response.data.detail.includes("perfil de usuario está incompleto"))) {
+            console.log("Redirecting to unauthorized due to 404 or incomplete profile message");
+            router.push('/incomplete-profile');
+            return;
+          }
         }
-        setError(err instanceof Error ? err: new Error('Su perfil no pudo ser cargado, por favor contacte al administrador para que llene sus datos'));
+        
+        setError(err instanceof Error ? err : new Error('Su perfil no pudo ser cargado, por favor contacte al administrador para que llene sus datos'));
       } finally {
         setLoading(false);
       }
     }
-
+  
     fetchProfile();
   }, [router]);
 

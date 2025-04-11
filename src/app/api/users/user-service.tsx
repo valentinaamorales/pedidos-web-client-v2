@@ -11,14 +11,14 @@ export class UserService {
       if (!accessToken) {
         throw new Error('No access token available');
       }
-
+  
       const { data } = await axiosInstance.get<UserProfile>('/users/me', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Cache-Control': 'no-cache',
         }
       });
-
+  
       return data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -27,10 +27,9 @@ export class UserService {
           message: error.message,
           data: error.response?.data
         });
-
-        if (error.response?.status === 404) {
-          throw new Error('User profile not found');
-        }
+  
+        // Asegurarnos de re-lanzar el error original para que useProfile pueda detectar el código 404
+        throw error;
       }
       throw new Error('Failed to fetch user profile');
     }

@@ -7,10 +7,10 @@ type UserRole = 'admin' | 'employee' | 'customer' | 'unauthorized';
 
 // Define protected routes and their allowed roles
 const routePermissions: Record<string, UserRole[]> = {
-  '/home': ['admin', 'employee', 'customer', 'unauthorized'],
+  '/home': ['admin', 'employee', 'customer',],
   '/orders': ['admin', 'employee', 'customer'],
   '/users': ['admin'],
-  '/': ['admin', 'employee', 'customer', 'unauthorized'],
+  '/': ['admin', 'employee', 'customer'],
 };
 
 export async function middleware(request: NextRequest) {
