@@ -41,6 +41,9 @@ export async function middleware(request: NextRequest) {
 
     const headers = new Headers(request.headers);
     headers.set('x-user-role', userRole);
+    if (session?.user?.email) {
+      headers.set('x-user-email', session.user.email);
+    }
 
     return NextResponse.next({
       request: {

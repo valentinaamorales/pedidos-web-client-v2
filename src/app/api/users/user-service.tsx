@@ -1,6 +1,7 @@
 import { axiosInstance } from '@/lib/axios';
-import { UserProfile, UsersListDto, UserQueryParams} from '@/types/users';
+import { UserProfile, UsersListDto, UserQueryParams, CustomerProfile} from '@/types/users';
 import { getAccessToken } from '@/app/actions/getAccessToken';
+import { getUserEmailFromIdToken } from '@/app/actions/getUserEmail';
 import axios from 'axios';
 
 export class UserService {
@@ -11,13 +12,26 @@ export class UserService {
       if (!accessToken) {
         throw new Error('No access token available');
       }
+
+      const emailInfo = await getUserEmailFromIdToken();
   
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Cache-Control': 'no-cache',
+      };
+
+      if (emailInfo.email) {
+        console.log('Email encontrado en sesión:', emailInfo.email);
+        headers['X-User-Email'] = emailInfo.email;
+      }
+
       const { data } = await axiosInstance.get<UserProfile>('/users/me', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache',
-        }
+        headers
       });
+
+      if (emailInfo.email && !data.email) {
+        data.email = emailInfo.email;
+      }
   
       return data;
     } catch (error) {
@@ -28,7 +42,6 @@ export class UserService {
           data: error.response?.data
         });
   
-        // Asegurarnos de re-lanzar el error original para que useProfile pueda detectar el código 404
         throw error;
       }
       throw new Error('Failed to fetch user profile');

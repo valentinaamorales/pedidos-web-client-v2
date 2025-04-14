@@ -29,7 +29,7 @@ export interface UsersListDto {
     is_active: boolean
 }
 
-interface UserQueryParams {
+export interface UserQueryParams {
     limit?: number;
     offset?: number;
   }
