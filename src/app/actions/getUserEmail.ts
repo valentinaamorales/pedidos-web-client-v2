@@ -18,9 +18,7 @@ export async function getUserEmailFromIdToken(): Promise<EmailTokenInfo> {
       return { error: 'No session available' };
     }
     
-    // CAMBIO CLAVE: Intentar obtener email de session.user primero
     if (session.user?.email) {
-      console.log('Email encontrado en session.user:', session.user.email);
       return {
         email: session.user.email,
         sub: session.user.sub
@@ -36,7 +34,6 @@ export async function getUserEmailFromIdToken(): Promise<EmailTokenInfo> {
           sub: decoded.sub
         };
       } catch (decodeError) {
-        console.error('Error decoding ID token:', decodeError);
       }
     }
     
@@ -45,7 +42,6 @@ export async function getUserEmailFromIdToken(): Promise<EmailTokenInfo> {
       sub: session.user?.sub
     };
   } catch (error) {
-    console.error('Error extracting email from session:', error);
     return { 
       error: error instanceof Error ? error.message : 'Unknown error'
     };
