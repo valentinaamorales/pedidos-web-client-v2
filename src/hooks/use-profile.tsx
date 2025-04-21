@@ -32,7 +32,6 @@ export function useProfile() {
           if (err.response?.status === 404 || 
               (err.response?.data?.detail && 
                err.response.data.detail.includes("perfil de usuario está incompleto"))) {
-            console.log("Redirecting to unauthorized due to 404 or incomplete profile message");
             router.push('/incomplete-profile');
             return;
           }

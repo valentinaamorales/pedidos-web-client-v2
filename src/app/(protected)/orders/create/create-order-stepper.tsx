@@ -172,8 +172,8 @@ export function CreateOrderStepper() {
         observations: data.observations,
         // Incluir campos opcionales solo si tienen valor
         ...(data.pricelistId ? { pricelistId: data.pricelistId } : {}),
-        ...(shippingAddressId ? { customerShippingAdressId: Number(shippingAddressId) } : {}),
-        ...(invoiceAddressId ? { customerInvoiceAdressId: Number(invoiceAddressId) } : {}),
+        ...(shippingAddressId ? { customerShippingAddressId: Number(shippingAddressId) } : {}),
+        ...(invoiceAddressId ? { customerInvoiceAddressId: Number(invoiceAddressId) } : {}),
         ...(profile?.code_erp ? { userId: parseInt(profile.code_erp) } : {}),
         items,
       };
@@ -261,11 +261,12 @@ export function CreateOrderStepper() {
               id: item.productId,
               name: item.productName,
               quantity: item.quantity,
-              reference: String(item.productId),
+              reference: item.productReference,
               price: item.priceUnit || 0,
-              uom_id: [1, ""] as [number, string]
+              uom_id: item.productPackaging ? item.productPackaging : [1, "kg"],
+              packageInfo: item.productPackaging ? item.productPackaging[1] : "Kilogramo"
             })),
-            observations: orderData.referenceCustomer || ""
+            observations: orderData.observations ? orderData.observations.replace(/<[^>]*>/g, '') : "",
           };
           
           setFormData(preparedData);

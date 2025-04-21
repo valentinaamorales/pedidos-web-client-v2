@@ -122,13 +122,13 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, onVal
             if (priceListItem) {
               // Encontrar el package correspondiente
               const packageItem = priceListItem.packagesItems.find(pkg => 
-                pkg.uom_id[0] === p.uom_id[0]
+                pkg.uom_id && p.uom_id && pkg.uom_id[0] === p.uom_id[0]
               ) || priceListItem.packagesItems[0];
               
               return {
                 ...priceListItem,
                 selectedPackage: packageItem || null,
-                packageQuantity: p.quantity / (packageItem?.quantity || 1)
+                packageQuantity: packageItem ? (p.quantity / packageItem?.quantity) : p.quantity
               };
             }
             
@@ -141,16 +141,16 @@ const SelectProducts = forwardRef(({ formData, updateFormData, onComplete, onVal
               price: p.price.toString(),
               packagesItems: p.uom_id ? [{
                 id: 1,
-                name: p.packageInfo || "Unidad",
+                name: p.packageInfo || "Kilogramo",
                 quantity: 1,
                 uom_id: p.uom_id
               }] : [],
               min_quantity: 0,
               selectedPackage: {
                 id: 1,
-                name: p.packageInfo || "Unidad",
+                name: p.packageInfo || "Kilogramo",
                 quantity: 1,
-                uom_id: p.uom_id || [1, "unid"]
+                uom_id: p.uom_id || [1, "kg"]
               },
               packageQuantity: p.quantity
             };

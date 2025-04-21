@@ -84,11 +84,20 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
           const deliveryData = await AddressService.getAddresses(formData.customerId, "delivery");
           setDeliveryAddresses(deliveryData);
           
-          if (deliveryData.length === 1 && !formData.deliveryAddress?.id) {
+          if (formData.deliveryAddress?.id) {
+            if (formData.deliveryAddress.id !== 'delivery-default' && formData.deliveryAddress.id !== 'none') {
+              // Si ya tiene un ID válido
+              form.setValue("merchandiseRecipient", formData.deliveryAddress.id);
+            } else if (formData.deliveryAddress.address && deliveryData.length === 1) {
+              // Si tiene dirección por defecto y solo hay una opción, seleccionar automáticamente
+              form.setValue("merchandiseRecipient", String(deliveryData[0].id));
+            } else if (deliveryData.length === 1) {
+              // Si solo hay una dirección disponible, seleccionarla
+              form.setValue("merchandiseRecipient", String(deliveryData[0].id));
+            }
+          } else if (deliveryData.length === 1) {
+            // Si solo hay una dirección disponible y no hay selección previa
             form.setValue("merchandiseRecipient", String(deliveryData[0].id));
-          }
-          else if (formData.deliveryAddress?.id) {
-            form.setValue("merchandiseRecipient", formData.deliveryAddress.id);
           }
         } catch (deliveryError) {
           setDeliveryAddresses([]);
@@ -98,11 +107,16 @@ const OrderAddress = forwardRef(({ formData, updateFormData, onComplete, onValid
           const invoiceData = await AddressService.getAddresses(formData.customerId, "invoice");
           setInvoiceAddresses(invoiceData);
           
-          if (invoiceData.length === 1 && !formData.invoiceAddress?.id) {
+          if (formData.invoiceAddress?.id) {
+            if (formData.invoiceAddress.id !== 'invoice-default' && formData.invoiceAddress.id !== 'none') {
+              form.setValue("billingRecipient", formData.invoiceAddress.id);
+            } else if (formData.invoiceAddress.address && invoiceData.length === 1) {
+              form.setValue("billingRecipient", String(invoiceData[0].id));
+            } else if (invoiceData.length === 1) {
+              form.setValue("billingRecipient", String(invoiceData[0].id));
+            }
+          } else if (invoiceData.length === 1) {
             form.setValue("billingRecipient", String(invoiceData[0].id));
-          }
-          else if (formData.invoiceAddress?.id) {
-            form.setValue("billingRecipient", formData.invoiceAddress.id);
           }
         } catch (invoiceError) {
           setInvoiceAddresses([]);

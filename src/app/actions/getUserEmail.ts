@@ -25,18 +25,6 @@ export async function getUserEmailFromIdToken(): Promise<EmailTokenInfo> {
       };
     }
     
-    // Fallback: Intentar obtener desde ID token si existe (aunque sabemos que no está disponible)
-    if (session.tokenSet?.id_token) {
-      try {
-        const decoded = jwtDecode<{ email?: string; sub?: string }>(session.tokenSet.id_token);
-        return {
-          email: decoded.email,
-          sub: decoded.sub
-        };
-      } catch (decodeError) {
-      }
-    }
-    
     return { 
       error: 'No email found in session or tokens',
       sub: session.user?.sub

@@ -39,7 +39,6 @@ export class OrderService {
 
             const queryString = queryParams.toString();
             const url = `/orders?${queryString}`;
-            console.log("URL de petición:", url);
             
             const { data } = await axiosInstance.get<OrderResponseDTO[]>(url, {
                 headers: {

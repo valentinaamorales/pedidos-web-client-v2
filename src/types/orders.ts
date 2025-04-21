@@ -9,8 +9,8 @@ export interface OrderCreateDTO {
     companyId: number;
     dateOrder: string;
     pricelistId?: number | null;
-    customerShippingAdressId?: number | null;
-    customerInvoiceAdressId?: number | null;
+    customerShippingAddressId?: number | null;
+    customerInvoiceAddressId?: number | null;
     userId?: number;
     items: OrderItem[];
   }
@@ -18,6 +18,8 @@ export interface OrderCreateDTO {
 export interface OrderItemResponse{
     productId: number;
     productName: string;
+    productReference: string;
+    productPackaging?: [number, string] | [];
     quantity: number;
     priceUnit: number;
     priceSubtotal: number;

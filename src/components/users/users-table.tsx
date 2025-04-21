@@ -63,7 +63,6 @@ const columns: ColumnDef<UsersListDto>[] = [
     const fetchUsers = async () => {
       // Si ya tenemos esta página en caché, usarla sin hacer petición
       if (pagesCache.current[pagination.pageIndex]) {
-        console.log(`Usando datos en caché para página ${pagination.pageIndex + 1}`);
         setData(pagesCache.current[pagination.pageIndex]);
         return;
       }

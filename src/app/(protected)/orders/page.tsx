@@ -14,9 +14,6 @@ export default function Orders() {
   // Convertir el code_erp (que es un string) a número
   const userCreateOrderId = profile?.code_erp ? parseInt(profile.code_erp) : undefined;
   const isCustomer = role === 'customer';
-
-  console.log("Profile:", profile);
-  console.log("User ID para filtrar:", userCreateOrderId);
   
   return (
     <main>

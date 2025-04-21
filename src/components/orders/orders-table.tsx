@@ -168,8 +168,6 @@ export function OrdersTable({ userCreateOrderId, isCustomerView = false }: Order
     fetchOrders();
   }, [pagination.pageIndex, pagination.pageSize]);
 
-  console.log("Realizando petición con userCreateOrderId:", userCreateOrderId);
-
   return (
     <div className="container mx-auto">
       {error && (
