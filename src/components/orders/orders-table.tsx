@@ -133,11 +133,18 @@ export function OrdersTable({ userCreateOrderId, isCustomerView = false }: Order
       // Convertir pageIndex a offset para la API
       const offset = pagination.pageIndex * pagination.pageSize;
       
-      const ordersData = await OrderService.getOrders({
+      const queryParams: OrdersQueryParams = {
         limit: pagination.pageSize,
         offset: offset,
-        userCreateOrderId: userCreateOrderId 
-      });
+      };
+  
+      if (isCustomerView) {
+        queryParams.customerCreateOrderId = userCreateOrderId;
+      } else {
+        queryParams.userCreateOrderId = userCreateOrderId;
+      }
+      
+      const ordersData = await OrderService.getOrders(queryParams);
       
       // Convertir al formato de la tabla
       const formattedData = ordersData.map(mapOrderResponseToTableFormat);

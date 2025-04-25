@@ -36,9 +36,10 @@ export class OrderService {
             if (params.limit) queryParams.append("limit", params.limit.toString());
             if (params.offset) queryParams.append("offset", params.offset.toString());
             if (params.userCreateOrderId) queryParams.append("user_create_order_id", params.userCreateOrderId.toString());
+            if (params.customerCreateOrderId) queryParams.append("customer_create_order_id", params.customerCreateOrderId.toString());
 
             const queryString = queryParams.toString();
-            const url = `/orders?${queryString}`;
+            const url = `/orders?${queryString ? `?${queryString}` : ""}`;
             
             const { data } = await axiosInstance.get<OrderResponseDTO[]>(url, {
                 headers: {
